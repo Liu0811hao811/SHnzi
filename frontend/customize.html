@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>在线定制 - 扇艺广告</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Microsoft YaHei", sans-serif;
+      background: #f5f6fa;
+      color: #333;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ===== 左侧功能栏 ===== */
+    .sidebar {
+      width: 220px;
+      background: #1a1a2e;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100vh;
+    }
+    .sidebar-logo {
+      padding: 28px 20px 20px;
+      font-size: 18px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      border-bottom: 1px solid #2a2a4a;
+      color: #e0c97f;
+      cursor: pointer;
+    }
+    .sidebar-logo span {
+      font-size: 12px; color: #aaa; display: block;
+      font-weight: normal; letter-spacing: 1px; margin-top: 4px;
+    }
+    .sidebar nav { flex: 1; padding: 16px 0; }
+    .nav-section-title {
+      font-size: 11px; color: #888; letter-spacing: 1px;
+      padding: 12px 20px 6px; text-transform: uppercase;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 20px; cursor: pointer; transition: background 0.2s;
+      font-size: 14px; border-left: 3px solid transparent;
+      text-decoration: none; color: #fff;
+    }
+    .nav-item:hover { background: #2a2a4a; }
+    .nav-item.active { background: #16213e; border-left-color: #e0c97f; color: #e0c97f; }
+    .nav-item .icon { font-size: 18px; width: 22px; text-align: center; }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid #2a2a4a; font-size: 12px; color: #888; }
+
+    /* ===== 主内容区 ===== */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    .topbar {
+      background: #fff; padding: 0 32px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid #e8e8e8; flex-shrink: 0;
+    }
+    .topbar-title { font-size: 18px; font-weight: bold; color: #1a1a2e; }
+    .topbar-actions { display: flex; gap: 12px; align-items: center; }
+    .btn {
+      padding: 8px 20px; border-radius: 6px; border: none;
+      cursor: pointer; font-size: 14px; font-family: inherit; transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: #e0c97f; color: #1a1a2e; font-weight: bold; }
+    .btn-outline { background: transparent; border: 1px solid #ddd; color: #555; }
+    .btn-dark    { background: #1a1a2e; color: #e0c97f; font-weight: bold; }
+
+    /* ===== 工作区（三列） ===== */
+    .workspace { flex: 1; display: flex; overflow: hidden; }
+
+    /* 左：参数面板 */
+    .design-panel {
+      width: 260px;
+      flex-shrink: 0;
+      background: #fff;
+      border-right: 1px solid #e8e8e8;
+      overflow-y: auto;
+      padding: 20px 18px 24px;
+    }
+    .panel-title {
+      font-size: 14px; font-weight: bold; color: #1a1a2e;
+      margin-bottom: 16px; padding-bottom: 10px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .form-group { margin-bottom: 14px; }
+    .form-group label {
+      display: block; font-size: 11px; color: #888;
+      margin-bottom: 5px; font-weight: 600; letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .form-group label .mode-tip {
+      font-size: 10px; color: #e0a020; font-weight: normal;
+      letter-spacing: 0; text-transform: none;
+    }
+    .form-group select,
+    .form-group textarea {
+      width: 100%; padding: 8px 10px;
+      border: 1px solid #e0e0e0; border-radius: 6px;
+      font-size: 13px; font-family: inherit; outline: none;
+      transition: border-color 0.2s, opacity 0.2s; background: #fff; color: #333;
+    }
+    .form-group select:focus,
+    .form-group textarea:focus { border-color: #e0c97f; }
+    .form-group select:disabled {
+      background: #f5f5f5; color: #bbb; cursor: not-allowed; opacity: 0.7;
+    }
+    .form-group textarea { height: 68px; resize: vertical; line-height: 1.6; }
+
+    /* ===== 模板选择列表 ===== */
+    .tpl-list {
+      border: 1px solid #e0e0e0; border-radius: 6px;
+      overflow: hidden; max-height: 168px; overflow-y: auto;
+    }
+    .tpl-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 10px; cursor: pointer;
+      transition: background 0.15s;
+      border-bottom: 1px solid #f4f4f4;
+    }
+    .tpl-item:last-child { border-bottom: none; }
+    .tpl-item:hover { background: #fafafa; }
+    .tpl-item.active { background: #fffbeb; border-left: 2px solid #e0c97f; }
+    .tpl-item.tpl-none { border-bottom: 1px solid #e8e8e8; }
+    .tpl-none-icon { font-size: 18px; width: 32px; text-align: center; flex-shrink: 0; }
+    .tpl-thumb {
+      width: 32px; height: 32px; border-radius: 3px;
+      object-fit: contain; background: #f0f0f0; flex-shrink: 0;
+    }
+    .tpl-file-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .tpl-name { font-size: 11px; color: #444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tpl-empty { padding: 16px 10px; font-size: 12px; color: #bbb; text-align: center; }
+
+    /* 分割线 */
+    .divider {
+      border: none; border-top: 1px solid #f0f0f0;
+      margin: 16px 0;
+    }
+
+    .panel-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+    .panel-actions .btn { width: 100%; padding: 10px; font-size: 13px; }
+
+    /* 中：预览区 */
+    .preview-panel {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: #f0f2f6; padding: 20px; position: relative;
+    }
+    .preview-toolbar { display: flex; gap: 6px; margin-bottom: 14px; }
+    .flip-btn {
+      padding: 6px 18px; border-radius: 20px; border: 1.5px solid #ddd;
+      background: #fff; font-size: 13px; font-family: inherit;
+      cursor: pointer; color: #555; transition: all 0.2s;
+    }
+    .flip-btn.active { background: #1a1a2e; color: #e0c97f; border-color: #1a1a2e; font-weight: bold; }
+    .canvas-wrap {
+      background: #fff; border-radius: 12px;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.1);
+      padding: 16px; display: inline-block;
+    }
+    canvas#fanCanvas { display: block; }
+    .preview-hint { margin-top: 12px; font-size: 12px; color: #aaa; letter-spacing: 0.5px; }
+
+    /* 右：已保存区 */
+    .saved-panel {
+      width: 300px; flex-shrink: 0; background: #fff;
+      border-left: 1px solid #e8e8e8; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .saved-header {
+      padding: 14px 16px 10px; border-bottom: 1px solid #f0f0f0;
+      display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+    }
+    .saved-header-title { font-size: 13px; font-weight: bold; color: #1a1a2e; }
+    .saved-count { font-size: 12px; color: #aaa; }
+    .saved-list {
+      flex: 1; overflow-y: auto; padding: 12px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-content: start;
+    }
+    .saved-empty {
+      grid-column: 1/-1; text-align: center;
+      padding: 40px 0; color: #ccc; font-size: 13px;
+    }
+    .saved-empty .ei { font-size: 36px; display: block; margin-bottom: 8px; }
+
+    .design-card {
+      border-radius: 8px; overflow: hidden; border: 1px solid #eee;
+      cursor: pointer; transition: box-shadow 0.2s, transform 0.2s;
+      position: relative; background: #fff;
+    }
+    .design-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.1); transform: translateY(-2px); }
+    .design-card:hover .dc-delete { display: flex; }
+    .dc-thumb { width: 100%; height: 100px; background: #f4f4f8; overflow: hidden; }
+    .dc-thumb img { width: 100%; height: 100px; object-fit: contain; display: block; }
+    .dc-info { padding: 7px 9px; }
+    .dc-name { font-size: 12px; font-weight: 600; color: #1a1a2e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+    .dc-meta { font-size: 11px; color: #aaa; }
+    .dc-delete {
+      position: absolute; top: 5px; right: 5px; width: 22px; height: 22px; border-radius: 50%;
+      background: rgba(255,255,255,0.92); border: none; cursor: pointer; display: none;
+      align-items: center; justify-content: center; font-size: 12px; color: #e05c5c;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+    .dc-load {
+      width: 100%; padding: 5px; border: none; border-top: 1px solid #f0f0f0;
+      background: #fafafa; font-size: 11px; color: #1a1a2e;
+      cursor: pointer; font-family: inherit;
+    }
+    .dc-load:hover { background: #f0f0f0; }
+  </style>
+</head>
+<body>
+
+  <!-- 左侧功能栏 -->
+  <aside class="sidebar">
+    <div class="sidebar-logo" onclick="location.href='index.html'">
+      扇艺广告
+      <span>广告扇子定制平台</span>
+    </div>
+    <nav>
+      <div class="nav-section-title">主菜单</div>
+      <a class="nav-item" href="index.html"><span class="icon">🏠</span> 首页</a>
+      <a class="nav-item" href="#"><span class="icon">🪭</span> 产品目录</a>
+      <a class="nav-item active" href="customize.html"><span class="icon">✏️</span> 在线定制</a>
+      <a class="nav-item" href="templates.html"><span class="icon">🎨</span> 设计模板</a>
+      <div class="nav-section-title">设置</div>
+      <a class="nav-item" href="#"><span class="icon">⚙️</span> 系统设置</a>
+      <a class="nav-item" href="#"><span class="icon">👤</span> 账号管理</a>
+    </nav>
+    <div class="sidebar-footer">© 2026 扇艺广告</div>
+  </aside>
+
+  <!-- 主内容区 -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-title">在线自动设计</div>
+      <div class="topbar-actions">
+        <button class="btn btn-outline">联系客服</button>
+        <button class="btn btn-primary" id="downloadBtn">下载 PNG</button>
+        <span id="userLabel" style="font-size:13px;color:#888;margin-left:8px;"></span>
+        <button class="btn btn-outline" id="logoutBtn" style="margin-left:4px;">退出</button>
+      </div>
+    </header>
+
+    <div class="workspace">
+
+      <!-- 左：参数面板 -->
+      <div class="design-panel">
+        <div class="panel-title">🎨 设计参数</div>
+
+        <!-- 模板选择 -->
+        <div class="form-group">
+          <label>模板 <span class="mode-tip">（与形状二选一）</span></label>
+          <div class="tpl-list" id="tplList">
+            <div class="tpl-item tpl-none active" id="tplNone">
+              <span class="tpl-none-icon">✏️</span>
+              <span class="tpl-name">不使用模板</span>
+            </div>
+            <div class="tpl-empty" id="tplEmpty">暂无已上传模板</div>
+          </div>
+        </div>
+
+        <hr class="divider">
+
+        <!-- 形状（与模板互斥） -->
+        <div class="form-group">
+          <label>形状 <span class="mode-tip">（与模板二选一）</span></label>
+          <select id="f-shape">
+            <option selected>折扇</option>
+            <option>圆扇</option>
+            <option>竹扇</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>规格</label>
+          <select id="f-size">
+            <option>20cm</option><option>25cm</option>
+            <option selected>30cm</option><option>35cm</option>
+            <option>40cm</option><option>45cm</option><option>50cm</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>行业</label>
+          <select id="f-industry">
+            <option>通用商务</option><option>餐饮美食</option>
+            <option>房地产</option><option>医疗健康</option>
+            <option>教育培训</option><option>旅游酒店</option>
+            <option>零售电商</option><option>金融保险</option>
+            <option>汽车服务</option><option>建筑装修</option>
+            <option>美容美发</option><option>政府机关</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>风格</label>
+          <select id="f-style">
+            <option selected>现代简约</option>
+            <option>古典中式</option>
+            <option>国潮时尚</option>
+            <option>清雅水墨</option>
+            <option>喜庆节日</option>
+            <option>商务高端</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>正面内容</label>
+          <textarea id="f-front" placeholder="公司名称、广告语、联系方式等&#10;支持多行输入"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>反面内容</label>
+          <textarea id="f-back" placeholder="产品介绍、地址、网址等&#10;支持多行输入"></textarea>
+        </div>
+
+        <div class="panel-actions">
+          <button class="btn btn-dark" id="saveBtn">💾 保存设计</button>
+        </div>
+      </div>
+
+      <!-- 中：预览区 -->
+      <div class="preview-panel">
+        <div class="preview-toolbar">
+          <button class="flip-btn active" data-side="front">正面</button>
+          <button class="flip-btn" data-side="back">反面</button>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="fanCanvas" width="420" height="380"></canvas>
+        </div>
+        <div class="preview-hint" id="previewHint">参数变化即时刷新预览</div>
+      </div>
+
+      <!-- 右：已保存 -->
+      <div class="saved-panel">
+        <div class="saved-header">
+          <span class="saved-header-title">已保存的设计</span>
+          <span class="saved-count" id="savedCount">0 个</span>
+        </div>
+        <div class="saved-list" id="savedList">
+          <div class="saved-empty"><span class="ei">🎨</span>暂无保存的设计</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const API   = 'http://localhost:5000';
+    const token = localStorage.getItem('token');
+    if (!token) { location.href = 'login.html'; }
+    const currentUser = localStorage.getItem('currentUser');
+    if (currentUser) document.getElementById('userLabel').textContent = '你好，' + currentUser;
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('currentUser');
+      location.href = 'login.html';
+    });
+
+    // ===================== 调色板 =====================
+    const PALETTES = {
+      '现代简约': { fills: ['#ffffff','#f0f4f8','#dce4ec'], ribs:'#90a4ae', frame:'#607d8b', accent:'#1a237e', textPri:'#1a237e', textSec:'#546e7a', font:'Arial,"Microsoft YaHei"' },
+      '古典中式': { fills: ['#f7e8c8','#e8d0a0','#c9a85c'], ribs:'#8b5e3c', frame:'#6b4226', accent:'#c9a85c', textPri:'#3d1c02', textSec:'#7a4f2a', font:'"KaiTi","STKaiti","Microsoft YaHei"' },
+      '国潮时尚': { fills: ['#ff6b35','#e8002d','#8b0000'], ribs:'#8b0000', frame:'#5c0000', accent:'#ffcc00', textPri:'#fff8e1', textSec:'#ffcc00', font:'"STHeiti","SimHei","Microsoft YaHei"' },
+      '清雅水墨': { fills: ['#f5f5f0','#e0e0d8','#c8c8bc'], ribs:'#4a4a4a', frame:'#2a2a2a', accent:'#888', textPri:'#1a1a1a', textSec:'#555', font:'"STFangsong","FangSong","Microsoft YaHei"' },
+      '喜庆节日': { fills: ['#ff4500','#ff0000','#8b0000'], ribs:'#7b1c1c', frame:'#5c0000', accent:'#ffeb3b', textPri:'#fffde7', textSec:'#ffeb3b', font:'"Microsoft YaHei"' },
+      '商务高端': { fills: ['#243447','#1b2838','#0d1b2a'], ribs:'#c9a85c', frame:'#a07840', accent:'#c9a85c', textPri:'#e0c97f', textSec:'#b0bec5', font:'"Arial","Microsoft YaHei"' }
+    };
+
+    // ===================== 状态 =====================
+    const state = {
+      size: '30cm', shape: '折扇', industry: '通用商务',
+      style: '现代简约', front: '', back: '', side: 'front',
+      templateObj: null,  // 当前选中的模板对象
+      templateImg: null   // 已加载的模板 Image
+    };
+
+    // ===================== 工具函数 =====================
+    function getPalette() { return PALETTES[state.style] || PALETTES['现代简约']; }
+
+    function sizeToRadius(sizeStr) {
+      const n = parseInt(sizeStr);
+      return 55 + (n - 20) / 30 * 130;
+    }
+
+    function wrapText(text, maxLen) {
+      if (!text) return [];
+      const lines = [];
+      text.split('\n').forEach(row => {
+        while (row.length > maxLen) { lines.push(row.slice(0, maxLen)); row = row.slice(maxLen); }
+        if (row) lines.push(row);
+      });
+      return lines.slice(0, 4);
+    }
+
+    function drawPattern(ctx, pal, cx, cy, R, style) {
+      ctx.save(); ctx.globalAlpha = 0.10; ctx.strokeStyle = pal.accent; ctx.lineWidth = 1;
+      if (style === '古典中式') {
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * Math.PI * 2;
+          ctx.beginPath(); ctx.arc(cx + Math.cos(a)*R*0.4, cy + Math.sin(a)*R*0.4, R*0.2, 0, Math.PI*2); ctx.stroke();
+        }
+      } else if (style === '国潮时尚') {
+        for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.arc(cx, cy, R*(0.3+i*0.15), 0, Math.PI*2); ctx.stroke(); }
+      } else if (style === '商务高端') {
+        for (let x = -R; x < R*2; x += 8) { ctx.beginPath(); ctx.moveTo(cx-R+x, cy-R); ctx.lineTo(cx-R+x+R, cy+R); ctx.stroke(); }
+      } else if (style === '喜庆节日') {
+        for (let i = 0; i < 12; i++) {
+          const a = (i/12)*Math.PI*2; const r = R*(0.3+Math.random()*0.5);
+          ctx.fillStyle = pal.accent; ctx.globalAlpha = 0.15;
+          ctx.beginPath(); ctx.arc(cx+Math.cos(a)*r, cy+Math.sin(a)*r, 3, 0, Math.PI*2); ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1; ctx.restore();
+    }
+
+    function renderText(ctx, pal, text, cx, cy, maxW) {
+      if (!text) return;
+      const lines = wrapText(text, 10);
+      const lh = 20;
+      ctx.font = `bold 14px ${pal.font}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const total = lines.length;
+      lines.forEach((line, i) => {
+        const y = cy + (i - (total-1)/2) * lh;
+        ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillText(line, cx+1, y+1);
+        ctx.fillStyle = pal.textPri;        ctx.fillText(line, cx, y);
+      });
+    }
+
+    // ===================== 绘制折扇 =====================
+    function drawFolding(ctx, W, H, pal, contentText) {
+      const cx = W/2, cy = H*0.90, R = sizeToRadius(state.size), r = R*0.20;
+      const sa = -Math.PI*0.82, ea = -Math.PI*0.18, ribs = 9;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, R, sa, ea); ctx.closePath();
+      const grad = ctx.createRadialGradient(cx, cy, r, cx, cy, R);
+      grad.addColorStop(0, pal.fills[0]); grad.addColorStop(0.5, pal.fills[1]); grad.addColorStop(1, pal.fills[2]);
+      ctx.fillStyle = grad; ctx.fill();
+      ctx.save(); ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, R, sa, ea); ctx.closePath(); ctx.clip();
+      const midA = (sa+ea)/2, midR = (R+r)/2;
+      drawPattern(ctx, pal, cx+Math.cos(midA)*midR, cy+Math.sin(midA)*midR, (R-r)*0.5, state.style);
+      ctx.restore();
+      for (let i = 0; i <= ribs; i++) {
+        const a = sa + (ea-sa)*i/ribs;
+        ctx.beginPath(); ctx.moveTo(cx+Math.cos(a)*r, cy+Math.sin(a)*r); ctx.lineTo(cx+Math.cos(a)*R, cy+Math.sin(a)*R);
+        ctx.strokeStyle = pal.ribs; ctx.lineWidth = 1.2; ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(cx, cy, R, sa, ea); ctx.strokeStyle = pal.frame; ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy, r, sa, ea); ctx.strokeStyle = pal.frame; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI*2); ctx.fillStyle = pal.frame; ctx.fill();
+      const tx = cx+Math.cos((sa+ea)/2)*(R+r)/2, ty = cy+Math.sin((sa+ea)/2)*(R+r)/2;
+      ctx.save(); ctx.translate(tx, ty); ctx.rotate((sa+ea)/2+Math.PI/2);
+      renderText(ctx, pal, contentText, 0, 0, R-r-10); ctx.restore();
+    }
+
+    // ===================== 绘制圆扇 =====================
+    function drawRound(ctx, W, H, pal, contentText) {
+      const cx = W/2, R = sizeToRadius(state.size)*0.88, cy = H*0.47, hL = R*0.75, hW = 9;
+      ctx.beginPath(); ctx.roundRect(cx-hW/2, cy+R-12, hW, hL+12, [0,0,4,4]); ctx.fillStyle = pal.ribs; ctx.fill();
+      for (let y = cy+R+8; y < cy+R+hL; y += 18) {
+        ctx.beginPath(); ctx.moveTo(cx-hW/2-2, y); ctx.lineTo(cx+hW/2+2, y); ctx.strokeStyle = pal.frame; ctx.lineWidth = 1.5; ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2);
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+      grad.addColorStop(0, pal.fills[0]); grad.addColorStop(0.55, pal.fills[1]); grad.addColorStop(1, pal.fills[2]);
+      ctx.fillStyle = grad; ctx.fill();
+      ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.clip();
+      drawPattern(ctx, pal, cx, cy, R, state.style); ctx.restore();
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.strokeStyle = pal.frame; ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy, R-9, 0, Math.PI*2); ctx.strokeStyle = pal.accent; ctx.globalAlpha = 0.4; ctx.lineWidth = 1; ctx.stroke(); ctx.globalAlpha = 1;
+      renderText(ctx, pal, contentText, cx, cy, R*1.6);
+    }
+
+    // ===================== 绘制竹扇 =====================
+    function drawBamboo(ctx, W, H, pal, contentText) {
+      const cx = W/2, Rx = sizeToRadius(state.size)*0.78, Ry = Rx*1.30, cy = H*0.46, bambooN = 7;
+      const hW = 10, hTop = cy+Ry-14, hBot = cy+Ry+Rx*0.85;
+      ctx.beginPath(); ctx.roundRect(cx-hW/2, hTop, hW, hBot-hTop, [0,0,5,5]); ctx.fillStyle = pal.ribs; ctx.fill();
+      for (let y = hTop+18; y < hBot; y += 18) {
+        ctx.beginPath(); ctx.moveTo(cx-hW/2-2, y); ctx.lineTo(cx+hW/2+2, y); ctx.strokeStyle = pal.frame; ctx.lineWidth = 1.5; ctx.stroke();
+      }
+      ctx.beginPath(); ctx.ellipse(cx, cy, Rx, Ry, 0, 0, Math.PI*2);
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Ry);
+      grad.addColorStop(0, pal.fills[0]); grad.addColorStop(0.5, pal.fills[1]); grad.addColorStop(1, pal.fills[2]);
+      ctx.fillStyle = grad; ctx.fill();
+      ctx.save(); ctx.beginPath(); ctx.ellipse(cx, cy, Rx, Ry, 0, 0, Math.PI*2); ctx.clip();
+      const sp = (Rx*2)/(bambooN+1);
+      for (let i = 1; i <= bambooN; i++) {
+        const x = cx-Rx+sp*i; ctx.beginPath(); ctx.moveTo(x, cy-Ry); ctx.lineTo(x, cy+Ry);
+        ctx.strokeStyle = pal.ribs; ctx.globalAlpha = 0.28; ctx.lineWidth = 1; ctx.stroke();
+      }
+      ctx.globalAlpha = 1; drawPattern(ctx, pal, cx, cy, Rx*0.7, state.style); ctx.restore();
+      ctx.beginPath(); ctx.ellipse(cx, cy, Rx, Ry, 0, 0, Math.PI*2); ctx.strokeStyle = pal.frame; ctx.lineWidth = 2.5; ctx.stroke();
+      renderText(ctx, pal, contentText, cx, cy, Rx*1.6);
+    }
+
+    // ===================== 绘制模板图片 =====================
+    function drawTemplateImage() {
+      const W = canvas.width, H = canvas.height;
+      const text = state.side === 'front' ? state.front : state.back;
+      const pal = getPalette();
+
+      if (state.templateImg) {
+        const img = state.templateImg;
+        const scale = Math.min((W - 20) / img.width, (H - 20) / img.height);
+        const dw = img.width * scale, dh = img.height * scale;
+        const dx = (W - dw) / 2,     dy = (H - dh) / 2;
+        ctx.drawImage(img, dx, dy, dw, dh);
+        if (text) renderText(ctx, pal, text, W / 2, H / 2, W * 0.75);
+      } else {
+        // 非图片格式，显示占位
+        ctx.fillStyle = '#f4f4f8';
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#999';
+        ctx.font = '36px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('📄', W/2, H/2 - 30);
+        ctx.font = '13px "Microsoft YaHei"'; ctx.fillStyle = '#aaa';
+        ctx.fillText('该格式不支持预览', W/2, H/2 + 10);
+        ctx.fillText(state.templateObj.name, W/2, H/2 + 30);
+        if (text) renderText(ctx, pal, text, W/2, H/2 + 70, W * 0.75);
+      }
+    }
+
+    // ===================== 主渲染函数 =====================
+    const canvas = document.getElementById('fanCanvas');
+    const ctx    = canvas.getContext('2d');
+
+    function renderFan() {
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+
+      if (state.templateObj) {
+        drawTemplateImage();
+        return;
+      }
+
+      const pal  = getPalette();
+      const text = state.side === 'front' ? state.front : state.back;
+      if (state.shape === '折扇')       drawFolding(ctx, W, H, pal, text);
+      else if (state.shape === '圆扇')  drawRound  (ctx, W, H, pal, text);
+      else                              drawBamboo (ctx, W, H, pal, text);
+    }
+
+    // ===================== 模板互斥控制 =====================
+    function setTemplateMode(tplObj) {
+      state.templateObj = tplObj;
+      state.templateImg = null;
+
+      // 禁用形状选择器
+      document.getElementById('f-shape').disabled = !!tplObj;
+      document.getElementById('previewHint').textContent = tplObj
+        ? '使用模板模式 — 形状设置已禁用'
+        : '参数变化即时刷新预览';
+
+      if (!tplObj) { renderFan(); return; }
+
+      // 判断是否为可预览的图片格式
+      const ext = tplObj.name.substring(tplObj.name.lastIndexOf('.')).toLowerCase();
+      const previewable = ['.png', '.jpg', '.jpeg'].includes(ext);
+
+      if (previewable) {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload  = () => { state.templateImg = img; renderFan(); };
+        img.onerror = () => { state.templateImg = null; renderFan(); };
+        img.src = tplObj.url;
+      } else {
+        renderFan();
+      }
+    }
+
+    // ===== 模板列表渲染 =====
+    function renderPanelTemplates(list) {
+      const tplList  = document.getElementById('tplList');
+      const tplEmpty = document.getElementById('tplEmpty');
+      // 清除旧的动态条目（保留 tplNone 和 tplEmpty）
+      tplList.querySelectorAll('.tpl-dyn').forEach(el => el.remove());
+
+      if (!list || list.length === 0) {
+        tplEmpty.style.display = 'block';
+        return;
+      }
+      tplEmpty.style.display = 'none';
+
+      const PREVIEW_EXT = ['.png', '.jpg', '.jpeg'];
+      list.forEach(tpl => {
+        const ext = tpl.name.substring(tpl.name.lastIndexOf('.')).toLowerCase();
+        const item = document.createElement('div');
+        item.className = 'tpl-item tpl-dyn';
+        item.dataset.id = tpl.id;
+        item.innerHTML = PREVIEW_EXT.includes(ext)
+          ? `<img class="tpl-thumb" src="${tpl.url}" alt="${tpl.name}" crossorigin="anonymous">
+             <span class="tpl-name" title="${tpl.name}">${tpl.name}</span>`
+          : `<span class="tpl-file-icon">${ext === '.pdf' ? '📄' : '🖼️'}</span>
+             <span class="tpl-name" title="${tpl.name}">${tpl.name}</span>`;
+
+        item.addEventListener('click', () => {
+          // 取消其他选中
+          document.querySelectorAll('.tpl-item').forEach(el => el.classList.remove('active'));
+          item.classList.add('active');
+          setTemplateMode(tpl);
+        });
+        tplList.appendChild(item);
+      });
+    }
+
+    // "不使用模板" 按钮
+    document.getElementById('tplNone').addEventListener('click', () => {
+      document.querySelectorAll('.tpl-item').forEach(el => el.classList.remove('active'));
+      document.getElementById('tplNone').classList.add('active');
+      setTemplateMode(null);
+    });
+
+    async function loadPanelTemplates() {
+      try {
+        const res = await fetch(`${API}/api/templates`, {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) return;
+        const list = await res.json();
+        renderPanelTemplates(list);
+      } catch {}
+    }
+
+    // ===================== 表单绑定 =====================
+    let renderTimer;
+    function scheduleRender() { clearTimeout(renderTimer); renderTimer = setTimeout(renderFan, 60); }
+
+    [['f-size','size'],['f-shape','shape'],['f-industry','industry'],['f-style','style']].forEach(([id, key]) => {
+      document.getElementById(id).addEventListener('change', e => {
+        // 切换形状时清除模板选择
+        if (key === 'shape' && state.templateObj) {
+          document.querySelectorAll('.tpl-item').forEach(el => el.classList.remove('active'));
+          document.getElementById('tplNone').classList.add('active');
+          setTemplateMode(null);
+        }
+        state[key] = e.target.value;
+        scheduleRender();
+      });
+    });
+
+    document.getElementById('f-front').addEventListener('input', e => { state.front = e.target.value; scheduleRender(); });
+    document.getElementById('f-back').addEventListener('input',  e => { state.back  = e.target.value; scheduleRender(); });
+
+    // 正/反面切换
+    document.querySelectorAll('.flip-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.flip-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.side = btn.dataset.side;
+        renderFan();
+      });
+    });
+
+    // ===================== 保存设计 =====================
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      const thumbnail = canvas.toDataURL('image/png');
+      const name = state.templateObj
+        ? `模板·${state.templateObj.name.replace(/\.[^.]+$/, '')}`
+        : `${state.shape}·${state.style}`;
+      try {
+        const res = await fetch(`${API}/api/designs`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body:    JSON.stringify({ name, params: { ...state, templateObj: state.templateObj ? { id: state.templateObj.id, name: state.templateObj.name, url: state.templateObj.url } : null }, thumbnail })
+        });
+        if (res.status === 401) { location.href = 'login.html'; return; }
+        const data = await res.json();
+        if (res.ok) prependCard(data.design);
+      } catch { alert('保存失败，请检查后端服务'); }
+    });
+
+    // ===================== 下载 PNG =====================
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+      const a = document.createElement('a');
+      a.href     = canvas.toDataURL('image/png');
+      a.download = `扇艺广告-${state.templateObj ? state.templateObj.name : state.shape + '-' + state.style}.png`;
+      a.click();
+    });
+
+    // ===================== 已保存列表 =====================
+    function prependCard(design) {
+      const list  = document.getElementById('savedList');
+      const empty = list.querySelector('.saved-empty');
+      if (empty) empty.remove();
+      list.prepend(buildCard(design));
+      updateCount();
+    }
+
+    function buildCard(design) {
+      const card = document.createElement('div');
+      card.className = 'design-card'; card.dataset.id = design.id;
+      const d = new Date(design.createdAt);
+      const dateStr = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+      card.innerHTML = `
+        <div class="dc-thumb">${design.thumbnail ? `<img src="${design.thumbnail}" alt="${design.name}">` : ''}</div>
+        <div class="dc-info">
+          <div class="dc-name">${design.name}</div>
+          <div class="dc-meta">${design.params.shape || '模板'} · ${dateStr}</div>
+        </div>
+        <button class="dc-load">载入编辑器</button>
+        <button class="dc-delete" title="删除">×</button>
+      `;
+      card.querySelector('.dc-load').addEventListener('click', () => loadDesign(design));
+      card.querySelector('.dc-delete').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const r = await fetch(`${API}/api/designs/${design.id}`, { method:'DELETE', headers:{'Authorization':'Bearer '+token} });
+        if (r.ok) { card.remove(); updateCount(); }
+      });
+      return card;
+    }
+
+    function loadDesign(design) {
+      const p = design.params;
+      state.size     = p.size     || '30cm';
+      state.shape    = p.shape    || '折扇';
+      state.industry = p.industry || '通用商务';
+      state.style    = p.style    || '现代简约';
+      state.front    = p.front    || '';
+      state.back     = p.back     || '';
+      document.getElementById('f-size').value     = state.size;
+      document.getElementById('f-shape').value    = state.shape;
+      document.getElementById('f-industry').value = state.industry;
+      document.getElementById('f-style').value    = state.style;
+      document.getElementById('f-front').value    = state.front;
+      document.getElementById('f-back').value     = state.back;
+
+      // 恢复模板选择
+      if (p.templateObj) {
+        const match = document.querySelector(`.tpl-dyn[data-id="${p.templateObj.id}"]`);
+        if (match) {
+          document.querySelectorAll('.tpl-item').forEach(el => el.classList.remove('active'));
+          match.classList.add('active');
+          setTemplateMode(p.templateObj);
+        } else {
+          setTemplateMode(p.templateObj); // 模板卡片不存在时也尝试加载
+        }
+      } else {
+        document.querySelectorAll('.tpl-item').forEach(el => el.classList.remove('active'));
+        document.getElementById('tplNone').classList.add('active');
+        setTemplateMode(null);
+      }
+    }
+
+    function updateCount() {
+      const n = document.querySelectorAll('.design-card').length;
+      document.getElementById('savedCount').textContent = n + ' 个';
+      if (n === 0) {
+        document.getElementById('savedList').innerHTML = '<div class="saved-empty"><span class="ei">🎨</span>暂无保存的设计</div>';
+      }
+    }
+
+    async function loadDesigns() {
+      try {
+        const res = await fetch(`${API}/api/designs`, { headers:{'Authorization':'Bearer '+token} });
+        if (res.status === 401) { location.href = 'login.html'; return; }
+        const list = await res.json();
+        if (list.length === 0) return;
+        const savedList = document.getElementById('savedList');
+        savedList.innerHTML = '';
+        list.forEach(d => savedList.appendChild(buildCard(d)));
+        updateCount();
+      } catch {}
+    }
+
+    // ===================== 初始化 =====================
+    renderFan();
+    loadPanelTemplates();
+    loadDesigns();
+  </script>
+</body>
+</html>

@@ -1,0 +1,616 @@
+/* =======================================================
+   全局重置 & CSS 变量
+   ======================================================= */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --dark:       #1a1a2e;
+  --dark-mid:   #16213e;
+  --gold:       #e0c97f;
+  --gold-deep:  #c9a227;
+  --teal:       #4ecdc4;
+  --red:        #e05c5c;
+  --bg:         #f5f6fa;
+  --white:      #ffffff;
+  --text:       #333333;
+  --muted:      #888888;
+  --border:     #e8e8e8;
+  --radius:     10px;
+  --shadow:     0 2px 12px rgba(0, 0, 0, 0.07);
+}
+
+body {
+  font-family: "Microsoft YaHei", "PingFang SC", -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* =======================================================
+   应用外层
+   ======================================================= */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* =======================================================
+   顶部导航栏
+   ======================================================= */
+.top-nav {
+  background: var(--dark);
+  padding: 0 32px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-icon { font-size: 22px; }
+
+.brand-name {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+
+/* 导航标签 */
+.nav-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.nav-tab {
+  padding: 7px 18px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #aaa;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+
+.nav-tab:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+
+.nav-tab.active {
+  background: var(--gold);
+  color: var(--dark);
+  font-weight: bold;
+}
+
+/* 历史数量徽标 */
+.tab-badge {
+  background: var(--red);
+  color: #fff;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 1px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* =======================================================
+   页面主体容器
+   ======================================================= */
+.page {
+  flex: 1;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* =======================================================
+   卡片
+   ======================================================= */
+.card {
+  background: var(--white);
+  border-radius: 14px;
+  padding: 28px;
+  box-shadow: var(--shadow);
+}
+
+/* 居中纵向排列（骨架屏用） */
+.center-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 32px 28px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--dark);
+  margin-bottom: 16px;
+}
+
+/* =======================================================
+   输入区
+   ======================================================= */
+.prompt-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text);
+  background: #fafafa;
+  resize: vertical;
+  outline: none;
+  line-height: 1.75;
+  transition: border-color 0.2s, background 0.2s;
+  margin-bottom: 16px;
+}
+
+.prompt-textarea:focus {
+  border-color: var(--gold);
+  background: var(--white);
+}
+
+.prompt-textarea::placeholder { color: #bbb; }
+
+/* 选项行（尺寸 + 质量 + 按钮） */
+.options-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.opt-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.opt-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.opt-select {
+  padding: 8px 32px 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text);
+  background: #fafafa url(
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23aaa' d='M6 8L0 0h12z'/%3E%3C/svg%3E"
+  ) no-repeat right 12px center;
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.opt-select:focus { border-color: var(--gold); }
+
+/* 生成按钮 */
+.gen-btn {
+  margin-left: auto;          /* 推到行末 */
+  padding: 10px 28px;
+  background: linear-gradient(135deg, var(--gold), var(--gold-deep));
+  color: var(--dark);
+  font-size: 14px;
+  font-weight: bold;
+  font-family: inherit;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 0.2s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.gen-btn:hover:not(:disabled) { opacity: 0.87; }
+.gen-btn:active:not(:disabled) { transform: scale(0.97); }
+.gen-btn:disabled { background: #ddd; color: #aaa; cursor: not-allowed; }
+
+/* 旋转加载动画 */
+.spin {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--dark);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 错误提示条 */
+.error-bar {
+  margin-top: 14px;
+  padding: 10px 16px;
+  background: #fff0f0;
+  border: 1px solid #f5c0c0;
+  border-radius: var(--radius);
+  color: var(--red);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* =======================================================
+   骨架屏（生成中加载态）
+   ======================================================= */
+.skeleton-img {
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #efefef 25%, #e0e0e0 50%, #efefef 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-tip {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* =======================================================
+   结果区头部
+   ======================================================= */
+.result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+/* 提示词摘要标签 */
+.prompt-chip {
+  font-size: 12px;
+  background: #f0f9f4;
+  border: 1px solid #b2dfdb;
+  color: #0f6460;
+  padding: 4px 12px;
+  border-radius: 20px;
+  max-width: 380px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+}
+
+/* DALL-E 3 优化后的提示词提示 */
+.revised-tip {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: #fffbee;
+  border: 1px solid #ffe58f;
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: #7d5a00;
+  line-height: 1.7;
+}
+
+/* =======================================================
+   单张结果图（居中展示）
+   ======================================================= */
+.single-result {
+  display: flex;
+  justify-content: center;
+}
+
+/* 结果卡片放大，最宽 520px */
+.single-result .img-card {
+  max-width: 520px;
+  width: 100%;
+}
+
+/* =======================================================
+   历史图片网格
+   ======================================================= */
+.img-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+/* =======================================================
+   图片卡片
+   ======================================================= */
+.img-card {
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--white);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.img-card:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+/* 图片容器 */
+.img-wrapper {
+  position: relative;
+  overflow: hidden;
+  cursor: zoom-in;
+  background: #efefef;
+  /* 高度由图片自身决定（支持不同宽高比） */
+}
+
+.img-wrapper img {
+  width: 100%;
+  height: auto;
+  display: block;
+  transition: transform 0.3s;
+}
+
+.img-wrapper:hover img { transform: scale(1.04); }
+
+/* 悬停提示（放大） */
+.img-hover-tip {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.img-wrapper:hover .img-hover-tip { opacity: 1; }
+
+/* 图片链接过期占位 */
+.img-broken {
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #f8f8f8;
+  color: var(--muted);
+  padding: 20px;
+  text-align: center;
+}
+
+.img-broken span { font-size: 32px; }
+.img-broken p    { font-size: 13px; font-weight: 500; }
+.img-broken small { font-size: 11px; color: #bbb; }
+
+/* 卡片底部区域 */
+.img-footer {
+  padding: 10px 12px 10px;
+}
+
+.img-prompt {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+/* 标签 + 下载按钮行 */
+.img-tags-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* 标签 */
+.tag {
+  font-size: 11px;
+  background: #f0f0f0;
+  color: #666;
+  padding: 2px 7px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.tag-hd   { background: #e8f5e9; color: #2e7d32; }
+.tag-time { background: #f3e8fd; color: #7b1fa2; }
+
+/* 下载按钮（固定到右侧） */
+.dl-btn {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  background: var(--dark);
+  color: var(--gold);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+
+.dl-btn:hover:not(:disabled) { opacity: 0.78; }
+.dl-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* =======================================================
+   历史页
+   ======================================================= */
+.history-count {
+  font-size: 13px;
+  font-weight: normal;
+  color: var(--muted);
+  margin-left: 8px;
+}
+
+/* 危险操作按钮（清空） */
+.danger-btn {
+  background: #fff0f0;
+  color: var(--red);
+  border: 1px solid #f5c0c0;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.danger-btn:hover {
+  background: var(--red);
+  color: #fff;
+  border-color: var(--red);
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 60px 0;
+  color: #ccc;
+}
+
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; }
+
+/* =======================================================
+   灯箱（全屏预览）
+   ======================================================= */
+.lightbox-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.lightbox-box {
+  background: var(--white);
+  border-radius: 14px;
+  max-width: 820px;
+  width: 100%;
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  animation: scaleIn 0.15s ease;
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); }
+  to   { transform: scale(1); }
+}
+
+/* 灯箱图片（限制最大高度，保持比例） */
+.lightbox-img {
+  width: 100%;
+  max-height: 72vh;
+  object-fit: contain;
+  display: block;
+  background: #111;
+}
+
+/* 灯箱底栏 */
+.lightbox-bar {
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border);
+}
+
+.lightbox-prompt {
+  font-size: 13px;
+  color: var(--muted);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lightbox-btns {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* 关闭 / 取消类按钮 */
+.ghost-btn {
+  padding: 8px 20px;
+  background: #f0f0f0;
+  color: var(--text);
+  border: none;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ghost-btn:hover { background: var(--border); }
+
+/* =======================================================
+   响应式：小屏幕适配
+   ======================================================= */
+@media (max-width: 600px) {
+  .top-nav     { padding: 0 16px; }
+  .page        { padding: 16px; }
+  .card        { padding: 20px 16px; }
+  .options-row { flex-direction: column; align-items: stretch; }
+  .gen-btn     { margin-left: 0; width: 100%; justify-content: center; }
+  .img-grid    { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .lightbox-mask { padding: 12px; }
+}

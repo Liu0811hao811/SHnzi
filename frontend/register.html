@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>注册 - 扇艺广告</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 48px 40px;
+      width: 400px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .logo .icon { font-size: 48px; }
+
+    .logo h1 {
+      font-size: 22px;
+      color: #1a1a2e;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    .logo p {
+      font-size: 13px;
+      color: #aaa;
+      margin-top: 4px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    input {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus { border-color: #e0c97f; }
+
+    .hint {
+      font-size: 11px;
+      color: #bbb;
+      margin-top: 4px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity 0.2s;
+    }
+
+    .btn:hover { opacity: 0.88; }
+
+    .btn-primary {
+      background: #1a1a2e;
+      color: #e0c97f;
+    }
+
+    .tip {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 13px;
+      color: #888;
+    }
+
+    .tip a {
+      color: #1a1a2e;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .tip a:hover { text-decoration: underline; }
+
+    .alert {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .alert-error { background: #ffeaea; color: #d0504a; border: 1px solid #f5c6c6; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="icon">🪭</div>
+      <h1>创建账号</h1>
+      <p>注册后即可使用扇艺广告平台</p>
+    </div>
+
+    <div class="alert alert-error" id="errorMsg"></div>
+
+    <form id="registerForm">
+      <div class="form-group">
+        <label>账号</label>
+        <input type="text" id="username" placeholder="请设置账号" autocomplete="username" />
+        <div class="hint">3~20 个字符，字母、数字或下划线</div>
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="password" placeholder="请设置密码" autocomplete="new-password" />
+        <div class="hint">至少 6 个字符</div>
+      </div>
+      <div class="form-group">
+        <label>确认密码</label>
+        <input type="password" id="confirmPassword" placeholder="再次输入密码" autocomplete="new-password" />
+      </div>
+      <button type="submit" class="btn btn-primary">立即注册</button>
+    </form>
+
+    <div class="tip">已有账号？<a href="login.html">去登录</a></div>
+  </div>
+
+  <script>
+    const API   = 'http://localhost:5000';
+    const form  = document.getElementById('registerForm');
+    const errorMsg = document.getElementById('errorMsg');
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      errorMsg.style.display = 'none';
+
+      const username        = document.getElementById('username').value.trim();
+      const password        = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      if (!username || !password || !confirmPassword) {
+        errorMsg.textContent = '请填写所有字段';
+        errorMsg.style.display = 'block';
+        return;
+      }
+      if (!/^[\w]{3,20}$/.test(username)) {
+        errorMsg.textContent = '账号须为 3~20 个字符，仅限字母、数字或下划线';
+        errorMsg.style.display = 'block';
+        return;
+      }
+      if (password.length < 6) {
+        errorMsg.textContent = '密码至少需要 6 个字符';
+        errorMsg.style.display = 'block';
+        return;
+      }
+      if (password !== confirmPassword) {
+        errorMsg.textContent = '两次输入的密码不一致';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      submitBtn.disabled   = true;
+      submitBtn.textContent = '注册中...';
+
+      try {
+        const res  = await fetch(`${API}/api/auth/register`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          errorMsg.textContent  = data.message || '注册失败';
+          errorMsg.style.display = 'block';
+          return;
+        }
+
+        sessionStorage.setItem('registered', 'true');
+        location.href = 'login.html';
+      } catch {
+        errorMsg.textContent  = '无法连接到服务器，请确认后端已启动';
+        errorMsg.style.display = 'block';
+      } finally {
+        submitBtn.disabled    = false;
+        submitBtn.textContent = '立即注册';
+      }
+    });
+  </script>
+</body>
+</html>
