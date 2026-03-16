@@ -104,6 +104,8 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
+      min-height: 0;
+      overflow-y: auto;
     }
 
     .ai-avatar-card {
@@ -232,6 +234,21 @@
       border-color: #e0c97f;
       color: #1a1a2e;
     }
+
+    /* 商家信息面板 */
+    .merchant-panel { background: #fff; border-radius: 12px; padding: 20px; }
+    .merchant-header { display:flex; justify-content:space-between; align-items:center; cursor:pointer; margin-bottom: 0; }
+    .merchant-header-title { font-size:13px; font-weight:bold; color:#1a1a2e; }
+    .merchant-toggle { font-size:11px; color:#888; transition:transform .25s; display:inline-block; }
+    .merchant-toggle.open { transform:rotate(180deg); }
+    .merchant-body { display:none; flex-direction:column; gap:8px; margin-top: 12px; }
+    .merchant-body.open { display:flex; }
+    .merchant-input { background:#f8f8f8; border:1px solid #eee; border-radius:7px; padding:8px 10px; font-size:12px; color:#333; outline:none; width:100%; box-sizing:border-box; font-family:inherit; }
+    .merchant-input::placeholder { color:#bbb; }
+    .merchant-input:focus { border-color:#e0c97f; background:#fff; }
+    .merchant-select { cursor:pointer; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aaa'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; padding-right:28px; }
+    .merchant-label { font-size:11px; color:#999; margin-bottom:-2px; }
+    .merchant-hint { font-size:11px; color:#bbb; text-align:center; margin-top:2px; }
 
     /* 右侧对话框 */
     .chat-panel {
@@ -460,6 +477,270 @@
       margin-top: 8px;
       text-align: right;
     }
+
+    /* ===== 上传图片按钮 ===== */
+    .upload-img-btn {
+      background: transparent;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      width: 36px; height: 36px;
+      font-size: 18px;
+      cursor: pointer;
+      flex-shrink: 0;
+      color: #999;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+    .upload-img-btn:hover { border-color: #e0c97f; color: #c9a227; background: #fdf8ec; }
+
+    /* ===== 已上传图片预览栏 ===== */
+    .uploaded-imgs-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .uploaded-img-chip {
+      position: relative;
+      width: 48px; height: 48px;
+      flex-shrink: 0;
+    }
+    .uploaded-img-chip img {
+      width: 48px; height: 48px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid #e0e0e0;
+      cursor: zoom-in;
+      display: block;
+    }
+    .uploaded-img-remove {
+      position: absolute;
+      top: -5px; right: -5px;
+      width: 16px; height: 16px;
+      background: #e05c5c;
+      border: none; border-radius: 50%;
+      color: #fff; font-size: 9px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0; line-height: 1;
+    }
+    .uploaded-img-remove:hover { background: #c0392b; }
+    .uploaded-img-count {
+      font-size: 11px; color: #aaa;
+    }
+    /* 图片类型标签 */
+    .uploaded-img-type {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(0,0,0,0.62);
+      color: #fff;
+      font-size: 9px;
+      text-align: center;
+      border-radius: 0 0 6px 6px;
+      padding: 2px 2px;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      user-select: none;
+    }
+    .uploaded-img-type:hover { background: rgba(0,0,0,0.85); }
+
+    /* 合成结果气泡 */
+    .composite-result-img {
+      max-width: 320px; width: 100%;
+      border-radius: 10px; display: block;
+      cursor: zoom-in;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+    }
+    .msg-img-wrap { line-height: 0; }
+    .msg-img-tip { font-size: 11px; color: #bbb; margin-top: 4px; line-height: 1.4; }
+    .composite-download-btn {
+      display: inline-block; margin-top: 6px;
+      background: #f0f0f0; border: none; border-radius: 6px;
+      padding: 5px 12px; font-size: 12px; color: #555;
+      cursor: pointer; text-decoration: none; font-family: inherit;
+    }
+    .composite-download-btn:hover { background: #e8e8e8; }
+
+    /* ===== 图标按钮（模式切换 & 模板选择）===== */
+    .icon-btn {
+      background: transparent;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      width: 36px; height: 36px;
+      font-size: 18px;
+      cursor: pointer;
+      flex-shrink: 0;
+      color: #aaa;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+    .icon-btn:hover { border-color: #e0c97f; color: #c9a227; background: #fdf8ec; }
+    .icon-btn.active { border-color: #c9a227; color: #c9a227; background: #fdf8ec; }
+
+    /* ===== 已选模板提示 ===== */
+    .selected-tpl-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      color: #888;
+    }
+    .selected-tpl-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #fdf8ec;
+      border: 1px solid #e0c97f;
+      border-radius: 20px;
+      padding: 3px 10px 3px 6px;
+      font-size: 12px;
+      color: #c9a227;
+    }
+    .selected-tpl-chip img {
+      width: 20px; height: 20px;
+      border-radius: 50%; object-fit: cover;
+    }
+    .deselect-btn {
+      background: none; border: none; cursor: pointer;
+      color: #bbb; font-size: 14px; padding: 0; line-height: 1; margin-left: 2px;
+    }
+    .deselect-btn:hover { color: #999; }
+
+    /* ===== 生成图片按钮 ===== */
+    .gen-img-btn {
+      background: #1a1a2e;
+      border: none;
+      border-radius: 8px;
+      color: #e0c97f;
+      font-size: 13px;
+      padding: 0 14px;
+      height: 36px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      font-family: inherit;
+    }
+    .gen-img-btn:hover:not(:disabled) { background: #0f3460; }
+    .gen-img-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ===== 双图模式按钮 ===== */
+    .dual-mode-btn {
+      font-size: 12px;
+      font-weight: 700;
+      min-width: 36px;
+      letter-spacing: -0.5px;
+    }
+    .dual-mode-btn.active {
+      border-color: #c9a227;
+      background: #c9a227;
+      color: #fff;
+    }
+
+    /* ===== 双图并排展示 ===== */
+    .dual-results {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .dual-result-item {
+      flex: 1 1 200px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .dual-result-label {
+      font-size: 12px;
+      font-weight: bold;
+      color: #e0c97f;
+      text-align: center;
+      background: #1a1a2e;
+      border-radius: 4px;
+      padding: 2px 8px;
+      align-self: center;
+    }
+
+    /* ===== 模板弹窗 ===== */
+    .tpl-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .tpl-modal {
+      background: #fff; border-radius: 16px;
+      width: 640px; max-width: 90vw; max-height: 80vh;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .tpl-modal-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex; align-items: center;
+      font-size: 15px; font-weight: bold; color: #1a1a2e;
+      flex-shrink: 0;
+    }
+    .tpl-modal-close {
+      margin-left: auto; background: none; border: none;
+      font-size: 20px; cursor: pointer; color: #bbb; line-height: 1; padding: 0;
+    }
+    .tpl-modal-close:hover { color: #666; }
+    .tpl-grid {
+      padding: 20px; overflow-y: auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 14px;
+    }
+    .tpl-card {
+      border: 2px solid #eee; border-radius: 10px;
+      overflow: hidden; cursor: pointer; transition: border-color 0.15s;
+    }
+    .tpl-card:hover { border-color: #e0c97f; }
+    .tpl-card.active { border-color: #c9a227; box-shadow: 0 0 0 2px rgba(201,162,39,0.25); }
+    .tpl-card img {
+      width: 100%; aspect-ratio: 1/1; object-fit: cover;
+      display: block; background: #f5f5f5;
+    }
+    .tpl-card-name {
+      font-size: 11px; color: #666;
+      padding: 6px 8px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tpl-empty {
+      grid-column: 1/-1; text-align: center;
+      color: #bbb; padding: 48px 0; font-size: 13px; line-height: 1.8;
+    }
+
+    /* ===== 生成结果气泡 ===== */
+    .gen-result-img {
+      max-width: 320px; width: 100%;
+      border-radius: 10px; display: block;
+      cursor: zoom-in;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+    }
+    .gen-img-tip { font-size: 11px; color: #bbb; margin-top: 4px; }
+    .gen-download-btn {
+      display: inline-block; margin-top: 6px;
+      background: #f0f0f0; border: none; border-radius: 6px;
+      padding: 5px 12px; font-size: 12px; color: #555;
+      cursor: pointer; text-decoration: none; font-family: inherit;
+    }
+    .gen-download-btn:hover { background: #e8e8e8; }
+
+    /* ===== 灯箱 ===== */
+    .lightbox-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 200; display: flex;
+      align-items: center; justify-content: center; cursor: zoom-out;
+    }
+    .lightbox-overlay img {
+      max-width: 90vw; max-height: 90vh;
+      border-radius: 8px; box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    }
   </style>
 </head>
 <body>
@@ -511,6 +792,43 @@
           </div>
         </div>
 
+        <div class="merchant-panel" id="merchantPanel">
+          <div class="merchant-header" onclick="toggleMerchant()">
+            <span class="merchant-header-title" id="merchantTitle1">🏪 商家信息</span>
+            <span class="merchant-toggle" id="merchantToggle">▼</span>
+          </div>
+          <div class="merchant-body" id="merchantBody">
+            <div class="merchant-label">图片风格</div>
+            <select class="merchant-input merchant-select" id="genStyle">
+              <option value="photo">写实摄影</option>
+              <option value="illustration">插画设计</option>
+              <option value="chinese">中国水墨</option>
+              <option value="business">简约商务</option>
+            </select>
+            <input class="merchant-input" id="shopName"  placeholder="店名（如：林文静牙科）" />
+            <input class="merchant-input" id="mainTitle" placeholder="主标题（如：无痛拔牙）" />
+            <input class="merchant-input" id="subTitle"  placeholder="副标题（如：一颗10元 两颗15元）" />
+            <input class="merchant-input" id="phone"     placeholder="电话" />
+            <input class="merchant-input" id="address"   placeholder="地址" />
+            <div class="merchant-hint">填写后生成图片将自动叠加文字</div>
+          </div>
+        </div>
+
+        <div class="merchant-panel" id="merchantPanel2" style="display:none;">
+          <div class="merchant-header" onclick="toggleMerchant2()">
+            <span class="merchant-header-title">🏪 反面信息</span>
+            <span class="merchant-toggle" id="merchantToggle2">▼</span>
+          </div>
+          <div class="merchant-body" id="merchantBody2">
+            <input class="merchant-input" id="shopName2"  placeholder="店名（反面）" />
+            <input class="merchant-input" id="mainTitle2" placeholder="主标题（反面）" />
+            <input class="merchant-input" id="subTitle2"  placeholder="副标题（反面）" />
+            <input class="merchant-input" id="phone2"     placeholder="电话（反面）" />
+            <input class="merchant-input" id="address2"   placeholder="地址（反面）" />
+            <div class="merchant-hint">不填则图2只展示图片，不叠加文字</div>
+          </div>
+        </div>
+
         <div class="quick-prompts">
           <div class="quick-prompts-title">快速提问</div>
           <button class="quick-btn" onclick="sendQuick(this)">折扇和圆扇有什么区别？</button>
@@ -542,6 +860,19 @@
         </div>
 
         <div class="chat-input-area">
+          <!-- 已上传图片预览 -->
+          <div class="uploaded-imgs-bar" id="uploadedImgsBar" style="display:none;"></div>
+
+          <!-- 已选模板提示 -->
+          <div class="selected-tpl-bar" id="selectedTplBar" style="display:none;">
+            已选模板：
+            <div class="selected-tpl-chip">
+              <img id="selectedTplImg" src="" alt="">
+              <span id="selectedTplName"></span>
+              <button class="deselect-btn" id="deselectTplBtn" title="取消选择">✕</button>
+            </div>
+          </div>
+
           <div class="chat-input-box">
             <textarea
               class="chat-textarea"
@@ -549,11 +880,30 @@
               placeholder="输入您的问题，例如：折扇定制需要提供哪些文件？"
               rows="1"
             ></textarea>
+            <button class="icon-btn" id="uploadImgBtn" title="上传参考图片">🖼</button>
+            <input type="file" id="imgUploadInput" accept="image/*" multiple style="display:none;">
+            <button class="icon-btn" id="modeBtn" title="切换生成图片模式">🎨</button>
+            <button class="icon-btn dual-mode-btn" id="dualModeBtn" title="当前：单图模式（点击切换为双图）" style="display:none;">×1</button>
+            <button class="icon-btn" id="openTplBtn" title="选择扇子模板">🪭</button>
+            <button class="gen-img-btn" id="genImgBtn" style="display:none;">生成图片</button>
             <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
           </div>
           <div class="input-hint">按 Enter 发送 · Shift+Enter 换行</div>
         </div>
 
+      </div>
+    </div>
+  </div>
+
+  <!-- 模板选择弹窗 -->
+  <div class="tpl-overlay" id="tplOverlay" style="display:none;">
+    <div class="tpl-modal">
+      <div class="tpl-modal-header">
+        选择扇子模板
+        <button class="tpl-modal-close" id="closeTplBtn">✕</button>
+      </div>
+      <div class="tpl-grid" id="tplGrid">
+        <div class="tpl-empty">加载中…</div>
       </div>
     </div>
   </div>
@@ -634,7 +984,6 @@
           <div class="gate-icon">${c.icon}</div>
           <div class="gate-title">${c.title}</div>
           <div class="gate-desc">${c.desc}</div>
-          <a class="gate-btn" href="index.html">返回首页</a>
         </div>
       `;
       document.body.appendChild(overlay);
@@ -777,10 +1126,6 @@
       return div;
     }
 
-    function escapeHtml(s) {
-      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-
     function showTyping() {
       const box = document.getElementById('chatMessages');
       const div = document.createElement('div');
@@ -887,6 +1232,748 @@
         sendMessage();
       }
     });
+
+    /* ═══════════════════════════════════════════════════
+       模板选择
+    ═══════════════════════════════════════════════════ */
+    let templates        = [];
+    let selectedTemplate = null;
+
+    async function fetchTemplates() {
+      if (!urlToken) return [];
+      try {
+        const res = await fetch(`${API}/api/templates/by-link/${urlToken}`);
+        if (!res.ok) return [];
+        return await res.json();
+      } catch { return []; }
+    }
+
+    function renderTplGrid() {
+      const grid = document.getElementById('tplGrid');
+      if (!templates.length) {
+        grid.innerHTML = '<div class="tpl-empty">暂无模板<br>请先在「设计模板」页面上传扇子模板</div>';
+        return;
+      }
+      grid.innerHTML = templates.map(t => {
+        const active = selectedTemplate?.id === t.id ? ' active' : '';
+        return `<div class="tpl-card${active}" data-id="${t.id}">
+          <img src="${t.url}" alt="${t.name}" loading="lazy">
+          <div class="tpl-card-name">${t.name}</div>
+        </div>`;
+      }).join('');
+      grid.querySelectorAll('.tpl-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const tpl = templates.find(t => t.id === Number(card.dataset.id));
+          if (tpl) selectTemplate(tpl);
+        });
+      });
+    }
+
+    // ── 模式：false = 对话模式，true = 生成图片模式 ──
+    let imageMode = false;
+    let dualMode  = false;
+
+    function setImageMode(on) {
+      imageMode = on;
+      const btn = document.getElementById('modeBtn');
+      btn.classList.toggle('active', on);
+      btn.title = on ? '已开启生成模式（点击关闭）' : '切换生成图片模式';
+      document.getElementById('genImgBtn').style.display = on ? '' : 'none';
+      document.getElementById('dualModeBtn').style.display = on ? '' : 'none';
+      if (!on) setDualMode(false);
+    }
+
+    function setDualMode(on) {
+      dualMode = on;
+      const btn = document.getElementById('dualModeBtn');
+      btn.classList.toggle('active', on);
+      btn.textContent = on ? '×2' : '×1';
+      btn.title = on ? '当前：双图模式（点击切换为单图）' : '当前：单图模式（点击切换为双图）';
+      document.getElementById('merchantPanel2').style.display = on ? '' : 'none';
+      document.getElementById('merchantTitle1').textContent = on ? '🏪 正面信息' : '🏪 商家信息';
+    }
+
+    document.getElementById('modeBtn').addEventListener('click', () => setImageMode(!imageMode));
+    document.getElementById('dualModeBtn').addEventListener('click', () => setDualMode(!dualMode));
+
+    function selectTemplate(tpl) {
+      selectedTemplate = tpl;
+      document.getElementById('tplOverlay').style.display = 'none';
+      document.getElementById('selectedTplBar').style.display = 'flex';
+      document.getElementById('selectedTplImg').src  = tpl.url;
+      document.getElementById('selectedTplName').textContent = tpl.name;
+      // 选了模板自动激活生成模式
+      if (!imageMode) setImageMode(true);
+    }
+
+    function deselectTemplate() {
+      selectedTemplate = null;
+      document.getElementById('selectedTplBar').style.display = 'none';
+      // 模式保持不变，用户可继续做纯文生图
+    }
+
+    document.getElementById('openTplBtn').addEventListener('click', () => {
+      document.getElementById('tplOverlay').style.display = 'flex';
+      renderTplGrid();
+    });
+    document.getElementById('closeTplBtn').addEventListener('click', () => {
+      document.getElementById('tplOverlay').style.display = 'none';
+    });
+    document.getElementById('deselectTplBtn').addEventListener('click', deselectTemplate);
+    document.getElementById('tplOverlay').addEventListener('click', function(e) {
+      if (e.target === this) this.style.display = 'none';
+    });
+
+    fetchTemplates().then(list => { templates = list; });
+
+    /* ═══════════════════════════════════════════════════
+       图片上传 & 类型标签
+    ═══════════════════════════════════════════════════ */
+    let uploadedImages = [];  // [{ name, dataUrl }]
+    let uploadedTypes  = [];  // ['logo'|'product'|'qrcode'|'other']
+
+    const TYPE_LABELS = { logo: 'Logo', product: '产品图', qrcode: '二维码', other: '参考图' };
+    const TYPE_CYCLE  = ['other', 'logo', 'product', 'qrcode'];
+
+    function cycleType(idx) {
+      const cur = uploadedTypes[idx] || 'other';
+      const next = TYPE_CYCLE[(TYPE_CYCLE.indexOf(cur) + 1) % TYPE_CYCLE.length];
+      uploadedTypes[idx] = next;
+      renderUploadedImgs();
+    }
+
+    function renderUploadedImgs() {
+      const bar = document.getElementById('uploadedImgsBar');
+      if (!uploadedImages.length) { bar.style.display = 'none'; return; }
+      bar.style.display = 'flex';
+      bar.innerHTML = uploadedImages.map((img, i) => {
+        const t = uploadedTypes[i] || 'other';
+        return `<div class="uploaded-img-chip">
+          <img src="${img.dataUrl}" alt="" title="${escapeHtml(img.name)}" data-idx="${i}">
+          <button class="uploaded-img-remove" data-idx="${i}" title="移除">✕</button>
+          <div class="uploaded-img-type" data-idx="${i}" title="点击切换类型">${TYPE_LABELS[t]}</div>
+        </div>`;
+      }).join('') + `<span class="uploaded-img-count">${uploadedImages.length} 张参考图</span>`;
+
+      bar.querySelectorAll('.uploaded-img-chip img').forEach(el => {
+        el.addEventListener('click', () => openLightbox(uploadedImages[+el.dataset.idx].dataUrl));
+      });
+      bar.querySelectorAll('.uploaded-img-remove').forEach(el => {
+        el.addEventListener('click', () => removeUploadedImg(+el.dataset.idx));
+      });
+      bar.querySelectorAll('.uploaded-img-type').forEach(el => {
+        el.addEventListener('click', () => cycleType(+el.dataset.idx));
+      });
+    }
+
+    function removeUploadedImg(idx) {
+      uploadedImages.splice(idx, 1);
+      uploadedTypes.splice(idx, 1);
+      renderUploadedImgs();
+    }
+
+    document.getElementById('imgUploadInput').addEventListener('change', function() {
+      for (const file of this.files) {
+        if (!file.type.startsWith('image/')) continue;
+        const reader = new FileReader();
+        reader.onload = e => {
+          uploadedImages.push({ name: file.name, dataUrl: e.target.result });
+          uploadedTypes.push('other');
+          renderUploadedImgs();
+        };
+        reader.readAsDataURL(file);
+      }
+      this.value = '';
+    });
+
+    document.getElementById('uploadImgBtn').addEventListener('click', () => {
+      document.getElementById('imgUploadInput').click();
+    });
+
+    /* ═══════════════════════════════════════════════════
+       图片生成工具函数
+    ═══════════════════════════════════════════════════ */
+    function escapeHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function openLightbox(src) {
+      const el = document.createElement('div');
+      el.className = 'lightbox-overlay';
+      el.innerHTML = `<img src="${src}" alt="预览">`;
+      el.addEventListener('click', () => el.remove());
+      document.body.appendChild(el);
+    }
+
+    // 去除参考图背景（调用后端火山引擎抠图）
+    async function removeBackground(dataUrl) {
+      const res  = await fetch(`${API}/api/image/remove-bg`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: dataUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || '去背景失败');
+      return data.imageUrl;
+    }
+
+    // 去除二维码白色背景（Canvas 纯前端）
+    function removeWhiteBackground(dataUrl) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const c   = document.createElement('canvas');
+          c.width   = img.naturalWidth;
+          c.height  = img.naturalHeight;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          const id  = ctx.getImageData(0, 0, c.width, c.height);
+          const d   = id.data;
+          const w   = c.width, h = c.height;
+          // 平滑去除白色/浅灰背景（亮度高且饱和度低的像素）
+          for (let i = 0; i < d.length; i += 4) {
+            const r = d[i], g = d[i+1], b = d[i+2];
+            const maxC = Math.max(r, g, b);
+            const sat  = maxC - Math.min(r, g, b);
+            if (maxC > 200 && sat < 40) {
+              const whiteness = maxC - sat * 1.5;
+              d[i+3] = Math.min(d[i+3], Math.max(0, Math.round((255 - whiteness) * 4)));
+            }
+          }
+          // alpha 通道分离式盒模糊羽化（半径 2），消除锯齿硬边
+          const R = 2;
+          const a = new Float32Array(w * h);
+          for (let i = 0; i < w * h; i++) a[i] = d[i * 4 + 3];
+          const t = new Float32Array(w * h);
+          for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+            let s = 0, n = 0;
+            for (let dx = -R; dx <= R; dx++) { const nx = x+dx; if (nx>=0&&nx<w){s+=a[y*w+nx];n++;} }
+            t[y*w+x] = s/n;
+          }
+          for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+            let s = 0, n = 0;
+            for (let dy = -R; dy <= R; dy++) { const ny = y+dy; if (ny>=0&&ny<h){s+=t[ny*w+x];n++;} }
+            d[(y*w+x)*4+3] = Math.round(s/n);
+          }
+          ctx.putImageData(id, 0, 0);
+          resolve(c.toDataURL('image/png'));
+        };
+        img.onerror = () => resolve(dataUrl);
+        img.src = dataUrl;
+      });
+    }
+
+    // 将图片 URL 转为 base64 data URL（用于传给后端）
+    async function urlToBase64(url) {
+      if (url.startsWith('data:')) return url;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`下载图片失败 ${res.status}`);
+      const buf    = await res.arrayBuffer();
+      const bytes  = new Uint8Array(buf);
+      let binary   = '';
+      for (const b of bytes) binary += String.fromCharCode(b);
+      const b64    = btoa(binary);
+      const mime   = res.headers.get('content-type') || 'image/png';
+      return `data:${mime};base64,${b64}`;
+    }
+
+    // 套扇面模板（调用后端 composite-template）
+    async function compositeWithTemplate(imageUrl, tplUrl, merchantInfo, genStyle = '') {
+      const res  = await fetch(`${API}/api/image/composite-template`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl, templateUrl: tplUrl, merchantInfo, genStyle }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || '套扇面失败');
+      const url = data.images?.[0]?.url;
+      if (!url) throw new Error('套扇面未返回图片');
+      return { url, fanBox: data.fanBox || null };
+    }
+
+    // 将二维码叠加到扇面合成图
+    // fanBox = { minX, minY, maxX, maxY }（后端提供的扇面包围盒，直接用于定位）
+    function compositeQROnFan(compositeUrl, qrRefs, qrInstrs = [], fanBox = null) {
+      return new Promise((resolve) => {
+        if (!qrRefs.length) { resolve(compositeUrl); return; }
+        const baseImg = new Image();
+        baseImg.crossOrigin = 'anonymous';
+        baseImg.onload = async () => {
+          const c = document.createElement('canvas');
+          c.width  = baseImg.naturalWidth;
+          c.height = baseImg.naturalHeight;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(baseImg, 0, 0);
+
+          // ── 定位扇面区域 ──────────────────────────────────────────
+          // ss=1 时所有行索引直接对应原始像素坐标
+          let ss, sc, fxMin, fxMax, fyMin, fyMax, rowXMin, rowXMax;
+
+          if (fanBox) {
+            // 后端提供精确包围盒：直接使用，避免扫描误判扇骨白色区域
+            ss = 1;
+            sc = { width: c.width, height: c.height };
+            fyMin = fanBox.minY; fyMax = fanBox.maxY;
+            fxMin = fanBox.minX; fxMax = fanBox.maxX;
+
+            // 按扇面形状构建逐行 X 范围
+            rowXMin = new Array(c.height).fill(fxMin);
+            rowXMax = new Array(c.height).fill(fxMax);
+            const fbW = fxMax - fxMin, fbH = fyMax - fyMin;
+            const cx  = (fxMin + fxMax) / 2, cy = (fyMin + fyMax) / 2;
+            // 圆形/近圆形扇面：用圆弧几何精确限定每行可用 X 范围
+            if (fbW / fbH > 0.70 && fbW / fbH < 1.40) {
+              const r = Math.min(fbW, fbH) / 2;
+              for (let y = fyMin; y <= fyMax; y++) {
+                const dy = y - cy;
+                if (Math.abs(dy) < r) {
+                  const dx = Math.sqrt(r * r - dy * dy);
+                  rowXMin[y] = Math.round(cx - dx);
+                  rowXMax[y] = Math.round(cx + dx);
+                } else {
+                  rowXMin[y] = Math.round(cx);
+                  rowXMax[y] = Math.round(cx);
+                }
+              }
+            }
+          } else {
+            // 回退：扫描图像（无后端包围盒时使用）
+            const scanMax = 600;
+            ss = Math.min(1, scanMax / Math.max(c.width, c.height));
+            sc = document.createElement('canvas');
+            sc.width  = Math.round(c.width  * ss);
+            sc.height = Math.round(c.height * ss);
+            sc.getContext('2d').drawImage(c, 0, 0, sc.width, sc.height);
+            const spx = sc.getContext('2d').getImageData(0, 0, sc.width, sc.height).data;
+            const rowWidths = new Array(sc.height).fill(0);
+            rowXMin = new Array(sc.height).fill(sc.width);
+            rowXMax = new Array(sc.height).fill(0);
+            for (let y = 0; y < sc.height; y++) {
+              for (let x = 0; x < sc.width; x++) {
+                if (spx[(y * sc.width + x) * 4 + 3] > 20) {
+                  if (x < rowXMin[y]) rowXMin[y] = x;
+                  if (x > rowXMax[y]) rowXMax[y] = x;
+                }
+              }
+              if (rowXMax[y] > rowXMin[y]) rowWidths[y] = rowXMax[y] - rowXMin[y];
+            }
+            const maxRowW = Math.max(...rowWidths);
+            const threshold = maxRowW * 0.40;
+            fyMin = sc.height; fyMax = 0; fxMin = sc.width; fxMax = 0;
+            for (let y = 0; y < sc.height; y++) {
+              if (rowWidths[y] >= threshold) {
+                if (y < fyMin) fyMin = y;
+                if (y > fyMax) fyMax = y;
+                if (rowXMin[y] < fxMin) fxMin = rowXMin[y];
+                if (rowXMax[y] > fxMax) fxMax = rowXMax[y];
+              }
+            }
+            if (fyMax === 0) { fyMin = 0; fyMax = sc.height - 1; fxMin = 0; fxMax = sc.width - 1; }
+          }
+          // ─────────────────────────────────────────────────────────
+
+          // 换算回原始坐标（ss=1 时不变）
+          const fanYMin = Math.round(fyMin / ss), fanYMax = Math.round(fyMax / ss);
+          const fanXMin = Math.round(fxMin / ss), fanXMax = Math.round(fxMax / ss);
+          const fanW    = fanXMax - fanXMin;
+          const fanH    = fanYMax - fanYMin;
+
+          // 基础尺寸：扇面最短边的 20%
+          const baseQrSize = Math.round(Math.min(fanW, fanH) * 0.20);
+          const edgePad    = Math.round(Math.min(fanW, fanH) * 0.04);
+
+          // 圆形扇面检测（宽高比 0.70~1.40 视为近圆形）
+          // 圆扇用圆心+半径比例定位，避免在极��边缘（弧顶/弧底）处 X 范围过窄
+          const isCircFan = fanBox && (fanW / fanH > 0.70 && fanW / fanH < 1.40);
+          const circ_cx   = isCircFan ? (fanXMin + fanXMax) / 2 : 0;
+          const circ_cy   = isCircFan ? (fanYMin + fanYMax) / 2 : 0;
+          const circ_r    = isCircFan ? Math.min(fanW, fanH) / 2 : 0;
+
+          // 解析单条指令 → { sz, px, py }（px/py=null 表示无指令，走自动堆叠）
+          function parseOneQR(instr, autoX) {
+            let sz = baseQrSize;
+            if      (/放大|大一些/.test(instr)) sz = Math.round(baseQrSize * 1.4);
+            else if (/稍大/.test(instr))        sz = Math.round(baseQrSize * 1.2);
+            else if (/缩小|小一些|稍小/.test(instr)) sz = Math.round(baseQrSize * 0.7);
+
+            let px = null, py = null;
+            if (instr) {
+              if (isCircFan) {
+                // 圆扇：以圆心为基准按比例偏移，后续逐行约束会精确限定到圆弧内
+                if      (/左/.test(instr)) px = Math.round(circ_cx - circ_r * 0.70);
+                else if (/右/.test(instr)) px = Math.round(circ_cx + circ_r * 0.70 - sz);
+                else                       px = Math.round(circ_cx - sz / 2);
+
+                if      (/下/.test(instr))                       py = Math.round(circ_cy + circ_r * 0.55 - sz / 2);
+                else if (/上/.test(instr.replace(/上传/g, ''))) py = Math.round(circ_cy - circ_r * 0.55 - sz / 2);
+                else                                            py = Math.round(circ_cy - sz / 2);
+              } else {
+                // 非圆扇：用包围盒边缘定位
+                if      (/左/.test(instr)) px = fanXMin + edgePad;
+                else if (/右/.test(instr)) px = fanXMax - sz - edgePad;
+                else                       px = Math.round(fanXMin + (fanW - sz) / 2);
+
+                if      (/下/.test(instr))                       py = fanYMax - sz - edgePad;
+                else if (/上/.test(instr.replace(/上传/g, ''))) py = fanYMin + edgePad;
+                else                                            py = Math.round(fanYMin + fanH * 0.50);
+              }
+            }
+            return { sz, px, py };
+          }
+
+          // 无指令 QR 的自动居中起始 X
+          const autoCount = qrRefs.filter((_, i) => !(qrInstrs[i] || '')).length;
+          const autoGap   = Math.round(baseQrSize * 0.08);
+          const autoTotalW = autoCount * baseQrSize + Math.max(0, autoCount - 1) * autoGap;
+          let   autoX = Math.round(fanXMin + (fanW - autoTotalW) / 2);
+
+          for (let qi = 0; qi < qrRefs.length; qi++) {
+            const instr = qrInstrs[qi] || '';
+            const { sz, px: instrX, py: instrY } = parseOneQR(instr, autoX);
+
+            // 有指令用指令坐标，无指令用自动堆叠
+            let qrX, qrY;
+            if (instrX !== null) {
+              qrX = instrX;
+              qrY = instrY;
+            } else {
+              qrX = autoX;
+              qrY = Math.round(fanYMin + fanH * 0.50);
+              autoX += sz + autoGap;
+            }
+            // 白色衬底外边距
+            const pad = Math.round(sz * 0.10);
+            // Y 方向：按包围盒限定（扇面上下边界）
+            qrY = Math.max(fanYMin + pad, Math.min(fanYMax - sz - pad, qrY));
+            // X 方向：按 QR 实际所在行的像素范围限定（处理圆扇/折扇等非矩形扇面）
+            // 取 QR 跨越的所有行中最保守（最窄）的 x 范围，确保整个矩形在扇面内
+            const szScaled = Math.max(1, Math.round(sz * ss));
+            const rowStart = Math.min(Math.round(qrY * ss), sc.height - 1);
+            const rowEnd   = Math.min(rowStart + szScaled, sc.height - 1);
+            let localXMin = 0, localXMax = sc.width;
+            for (let ry = rowStart; ry <= rowEnd; ry++) {
+              if (rowXMin[ry] < sc.width && rowXMax[ry] > 0) {
+                if (rowXMin[ry] > localXMin) localXMin = rowXMin[ry];  // 最紧的左边界
+                if (rowXMax[ry] < localXMax) localXMax = rowXMax[ry];  // 最紧的右边界
+              }
+            }
+            // 若范围无效则回退到包围盒
+            if (localXMin >= localXMax) { localXMin = fxMin; localXMax = fxMax; }
+            const realFanXMin = Math.round(localXMin / ss);
+            const realFanXMax = Math.round(localXMax / ss);
+            qrX = Math.max(realFanXMin + pad, Math.min(realFanXMax - sz - pad, qrX));
+
+            const qrUrl = qrRefs[qi];
+            await new Promise(res2 => {
+              const qrImg = new Image();
+              qrImg.crossOrigin = 'anonymous';
+              qrImg.onload = () => {
+                ctx.imageSmoothingEnabled = false;
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(qrX - pad, qrY - pad, sz + pad * 2, sz + pad * 2);
+                ctx.drawImage(qrImg, qrX, qrY, sz, sz);
+                ctx.imageSmoothingEnabled = true;
+                res2();
+              };
+              qrImg.onerror = res2;
+              qrImg.src = qrUrl;
+            });
+          }
+          resolve(c.toDataURL('image/png'));
+        };
+        baseImg.onerror = () => resolve(compositeUrl);
+        baseImg.src = compositeUrl;
+      });
+    }
+
+    /* ═══════════════════════════════════════════════════
+       图片生成主流程
+    ═══════════════════════════════════════════════════ */
+    const loadingHtml = ' <span style="color:#bbb;font-size:12px;">⌛ 处理中…</span>';
+
+    // ── 商家信息面板 ──
+    function toggleMerchant() {
+      const body   = document.getElementById('merchantBody');
+      const toggle = document.getElementById('merchantToggle');
+      const open   = body.classList.toggle('open');
+      toggle.classList.toggle('open', open);
+    }
+
+    function toggleMerchant2() {
+      const body   = document.getElementById('merchantBody2');
+      const toggle = document.getElementById('merchantToggle2');
+      const open   = body.classList.toggle('open');
+      toggle.classList.toggle('open', open);
+    }
+
+    function getMerchantInfo(panel) {
+      const suffix = (panel === 2) ? '2' : '';
+      const fields = ['shopName', 'mainTitle', 'subTitle', 'phone', 'address'];
+      const info = {};
+      fields.forEach(id => { info[id] = document.getElementById(id + suffix)?.value.trim() || ''; });
+      return Object.values(info).some(v => v) ? info : null;
+    }
+
+    function getGenStyle() {
+      return document.getElementById('genStyle')?.value || 'photo';
+    }
+
+    // 根据 token 携带的风格/行业信息，给用户 prompt 加上后缀修饰词
+    // 注意：用户内容必须放在最前面，扩散模型对靠前的词权重更高
+    function buildEnrichedPrompt(userPrompt) {
+      const styleMap = {
+        '简约现代': '，简约现代风格，线条干净',
+        '中国风':   '，中国水墨风，古典意境',
+        '商务正式': '，商务风格，沉稳大气',
+        '活泼趣味': '，活泼插画风，色彩明快',
+        '自然清新': '，自然清新风，色调柔和',
+      };
+      const industryMap = {
+        '餐饮':    '，餐饮场景',
+        '婚庆':    '，婚庆主题',
+        '旅游':    '，旅游风景',
+        '文化教育': '，文化主题',
+        '政务':    '，政务主题',
+        '零售':    '，商业主题',
+        '医疗健康': '，健康主题',
+      };
+      const style    = sessionInfo?.style    || '';
+      const industry = sessionInfo?.industry || '';
+      // 用户已手动选择图片风格时，跳过 token 风格注入，避免与 genStyle 冲突
+      const styleSuffix    = getGenStyle() ? '' : (styleMap[style] || (style ? '，' + style + '风格' : ''));
+      const industrySuffix = industryMap[industry] || (industry ? '，' + industry + '主题' : '');
+      return userPrompt + styleSuffix + industrySuffix + '，高清，精细';
+    }
+
+    // 自动识别括号语法：（）括号内 = 对上传图片的要求，括号外 = 场景生成 prompt
+    // imageInstrs 是数组，第 i 项对应第 i 张上传图的指令
+    function parsePrompt(text) {
+      const instrs = [];
+      const scene = text.replace(/[（(][^）)]*[）)]/g, m => {
+        instrs.push(m.slice(1, -1).trim());
+        return '';
+      }).replace(/\s+/g, ' ').trim();
+      return { sceneText: scene || text, imageInstrs: instrs };
+    }
+
+    // 前端分析扇面模板，返回扇面包围盒宽高比（用于选最佳 T2I 尺寸）
+    function getFanAspectRatio(tplUrl) {
+      return new Promise(resolve => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const sc = 4;
+            const c = document.createElement('canvas');
+            c.width  = Math.max(1, Math.round(img.naturalWidth  / sc));
+            c.height = Math.max(1, Math.round(img.naturalHeight / sc));
+            const ctx = c.getContext('2d');
+            ctx.drawImage(img, 0, 0, c.width, c.height);
+            const d = ctx.getImageData(0, 0, c.width, c.height).data;
+            const w = c.width, h = c.height;
+            function isDark(i) {
+              const p = i * 4;
+              return Math.abs(d[p]-17)<=40 && Math.abs(d[p+1]-17)<=40 && Math.abs(d[p+2]-17)<=40;
+            }
+            // BFS 从四边标记背景暗色像素
+            const bg = new Uint8Array(w * h);
+            const q = [];
+            function seed(x, y) { const i=y*w+x; if (!bg[i]&&isDark(i)){bg[i]=1;q.push(i);} }
+            for (let x=0;x<w;x++){seed(x,0);seed(x,h-1);}
+            for (let y=1;y<h-1;y++){seed(0,y);seed(w-1,y);}
+            for (let qi=0;qi<q.length;qi++){
+              const i=q[qi],x=i%w,y=(i/w)|0;
+              if (x>0   &&!bg[i-1]&&isDark(i-1)){bg[i-1]=1;q.push(i-1);}
+              if (x<w-1 &&!bg[i+1]&&isDark(i+1)){bg[i+1]=1;q.push(i+1);}
+              if (y>0   &&!bg[i-w]&&isDark(i-w)){bg[i-w]=1;q.push(i-w);}
+              if (y<h-1 &&!bg[i+w]&&isDark(i+w)){bg[i+w]=1;q.push(i+w);}
+            }
+            let minX=w,minY=h,maxX=0,maxY=0,found=false;
+            for (let y=0;y<h;y++) for (let x=0;x<w;x++){
+              const i=y*w+x;
+              if (!bg[i]&&isDark(i)){
+                if(x<minX)minX=x;if(x>maxX)maxX=x;
+                if(y<minY)minY=y;if(y>maxY)maxY=y;
+                found=true;
+              }
+            }
+            if (found&&maxX>minX&&maxY>minY) resolve((maxX-minX+1)/(maxY-minY+1));
+            else resolve(1.0);
+          } catch { resolve(1.0); }
+        };
+        img.onerror = () => resolve(1.0);
+        img.src = tplUrl;
+      });
+    }
+
+    // 根据宽高比选最合适的 T2I 尺寸（总像素约 1M，步长 64，范围 512~1280）
+    function pickT2ISize(ratio) {
+      const TARGET = 1024 * 1024;
+      let h = Math.round(Math.sqrt(TARGET / ratio) / 64) * 64;
+      let w = Math.round(ratio * h / 64) * 64;
+      h = Math.max(512, Math.min(1280, h));
+      w = Math.max(512, Math.min(1280, w));
+      return `${w}x${h}`;
+    }
+
+    // ── 单次管道：生成并返回一张最终图片 URL ──
+    async function runOnePipeline({ tplUrl, fullScene, qrUrls, qrInstrs, genStyle, merchantInfo, onProgress }) {
+      if (tplUrl) {
+        onProgress('正在生成场景图片，请稍候…');
+        const genPrompt = buildEnrichedPrompt(fullScene);
+        const fanRatio  = await getFanAspectRatio(tplUrl);
+        const genSize   = pickT2ISize(fanRatio);
+        const genRes    = await fetch(`${API}/api/image/generate`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: genPrompt, size: genSize, genStyle }),
+        });
+        const genData = await genRes.json();
+        if (!genRes.ok || !genData.images?.[0]) throw new Error(genData.message || '文生图失败');
+        let imgUrl = genData.images[0].url;
+
+        if (qrUrls.length) {
+          onProgress('正在处理二维码…');
+        }
+        onProgress('正在合成到扇面模板，请稍候…');
+        const { url: compositeUrl0, fanBox } = await compositeWithTemplate(imgUrl, tplUrl, merchantInfo, genStyle);
+        let compositeUrl = compositeUrl0;
+
+        if (qrUrls.length) {
+          try { compositeUrl = await compositeQROnFan(compositeUrl, qrUrls, qrInstrs, fanBox); } catch {}
+        }
+        return compositeUrl;
+
+      } else {
+        onProgress('正在生成图片，请稍候…');
+        const genPrompt = buildEnrichedPrompt(fullScene);
+        const genRes    = await fetch(`${API}/api/image/generate`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: genPrompt, size: '1024x1024', merchantInfo, genStyle }),
+        });
+        const genData = await genRes.json();
+        if (!genRes.ok || !genData.images?.[0]) throw new Error(genData.message || '文生图失败');
+        let imgUrl = genData.images[0].url;
+
+        if (qrUrls.length) {
+          onProgress('正在处理二维码…');
+          try { imgUrl = await compositeQROnFan(imgUrl, qrUrls, qrInstrs); } catch {}
+        }
+        return imgUrl;
+      }
+    }
+
+    async function generateImage() {
+      const promptText = document.getElementById('chatInput').value.trim();
+      if (!promptText) { document.getElementById('chatInput').focus(); return; }
+      const { sceneText, imageInstrs } = parsePrompt(promptText);
+
+      const btn = document.getElementById('genImgBtn');
+      btn.disabled = true;
+      btn.textContent = '生成中…';
+
+      const box = document.getElementById('chatMessages');
+      const welcome = document.getElementById('welcomeMsg');
+      if (welcome) welcome.style.display = 'none';
+
+      // 快照当前上传图
+      const uploadedUrls      = uploadedImages.map(i => i.dataUrl);
+      const uploadedTypesSnap = uploadedTypes.slice();
+      const effectiveTypes    = uploadedTypesSnap.map((t, i) =>
+        (t === 'other' && /二维码|qr码|QR/i.test(imageInstrs[i] || '')) ? 'qrcode' : t
+      );
+
+      const tplUrl   = selectedTemplate ? selectedTemplate.url : null;
+      const label    = tplUrl ? `扇面合成（${selectedTemplate.name}）` : '文生图';
+      const modeTag  = dualMode ? ' · 双图' : '';
+      appendMsg('user', `[${label}${modeTag}] ${promptText}`);
+
+      // 公共参数
+      const qrIndices  = uploadedUrls.map((_, i) => i).filter(i => (effectiveTypes[i] || 'other') === 'qrcode');
+      const nonQrIdx   = uploadedUrls.map((_, i) => i).filter(i => (effectiveTypes[i] || 'other') !== 'qrcode');
+      const qrUrls     = qrIndices.map(i => uploadedUrls[i]);
+      const qrInstrs   = qrIndices.map(i => imageInstrs[i] || '');
+      const nonQrInstr = nonQrIdx.map(i => imageInstrs[i] || '').filter(Boolean).join('，');
+      const fullScene  = sceneText + (nonQrInstr ? '，' + nonQrInstr : '');
+      const genStyle   = getGenStyle();
+
+      // AI 气泡
+      const aDiv = document.createElement('div');
+      aDiv.className = 'msg ai';
+      aDiv.innerHTML = `<div class="msg-avatar">🪭</div>`;
+      const bubble = document.createElement('div');
+      bubble.className = 'msg-bubble';
+      bubble.innerHTML = 'AI 正在生成图片，请稍候…' + loadingHtml;
+      aDiv.appendChild(bubble);
+      box.appendChild(aDiv);
+      box.scrollTop = box.scrollHeight;
+
+      try {
+        const count = dualMode ? 2 : 1;
+        const results = [];
+
+        for (let n = 0; n < count; n++) {
+          const prefix = dualMode ? `${['正面', '反面'][n]}：` : '';
+          const merchantInfo = getMerchantInfo(dualMode ? n + 1 : undefined);
+          const url = await runOnePipeline({
+            tplUrl, fullScene, qrUrls, qrInstrs, genStyle, merchantInfo,
+            onProgress: msg => {
+              bubble.innerHTML = prefix + msg + loadingHtml;
+              box.scrollTop = box.scrollHeight;
+            },
+          });
+          results.push(url);
+        }
+
+        if (!dualMode) {
+          // 单图展示
+          const url  = results[0];
+          const safe = url.replace(/'/g, "\'");
+          const tip  = tplUrl ? '扇面合成图 · 点击放大' : 'AI 生成图 · 点击放大';
+          const fname = tplUrl ? 'fan-result.png' : 'ai-image.png';
+          bubble.innerHTML = `
+            <div class="msg-img-wrap">
+              <img src="${url}" class="composite-result-img"
+                   alt="${escapeHtml(promptText)}" onclick="openLightbox('${safe}')">
+              <div class="msg-img-tip">${tip}</div>
+            </div>`;
+          const dlBtn = document.createElement('a');
+          dlBtn.className = 'composite-download-btn';
+          dlBtn.href = url; dlBtn.download = fname;
+          dlBtn.textContent = '⬇ 下载图片';
+          bubble.appendChild(dlBtn);
+
+        } else {
+          // 双图并排展示
+          const tip   = tplUrl ? '扇面合成图' : 'AI 生成图';
+          const fname = tplUrl ? 'fan-result' : 'ai-image';
+          let html = '<div class="dual-results">';
+          results.forEach((url, i) => {
+            const safe = url.replace(/'/g, "\'");
+            html += `
+              <div class="dual-result-item">
+                <div class="dual-result-label">${['正面', '反面'][i]}</div>
+                <img src="${url}" class="composite-result-img"
+                     alt="${escapeHtml(promptText)}" onclick="openLightbox('${safe}')">
+                <div class="msg-img-tip">${tip} · 点击放大</div>
+                <a class="composite-download-btn" href="${url}" download="${fname}-${['正面', '反面'][i]}.png">⬇ 下载${['正面', '反面'][i]}</a>
+              </div>`;
+          });
+          html += '</div>';
+          bubble.innerHTML = html;
+        }
+
+        box.scrollTop = box.scrollHeight;
+        document.getElementById('chatInput').value = '';
+        document.getElementById('chatInput').style.height = 'auto';
+
+      } catch (err) {
+        bubble.innerHTML = `<span style="color:#c0392b;">✕ 生成失败：${escapeHtml(err.message)}</span>`;
+        box.scrollTop = box.scrollHeight;
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = '生成图片';
+      }
+    }
+
+    document.getElementById('genImgBtn').addEventListener('click', generateImage);
   </script>
 </body>
 </html>

@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>批量染色 - 扇艺广告</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Microsoft YaHei", sans-serif;
+      background: #f5f6fa;
+      color: #333;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ===== 左侧功能栏 ===== */
+    .sidebar {
+      width: 220px;
+      background: #1a1a2e;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100vh;
+    }
+    .sidebar-logo {
+      padding: 28px 20px 20px;
+      font-size: 18px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      border-bottom: 1px solid #2a2a4a;
+      color: #e0c97f;
+      cursor: pointer;
+    }
+    .sidebar-logo span {
+      font-size: 12px; color: #aaa; display: block;
+      font-weight: normal; letter-spacing: 1px; margin-top: 4px;
+    }
+    .sidebar nav { flex: 1; padding: 16px 0; }
+    .nav-section-title {
+      font-size: 11px; color: #888; letter-spacing: 1px;
+      padding: 12px 20px 6px; text-transform: uppercase;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 20px; cursor: pointer; transition: background 0.2s;
+      font-size: 14px; border-left: 3px solid transparent;
+      text-decoration: none; color: #fff;
+    }
+    .nav-item:hover { background: #2a2a4a; }
+    .nav-item.active { background: #16213e; border-left-color: #e0c97f; color: #e0c97f; }
+    .nav-item .icon { font-size: 18px; width: 22px; text-align: center; }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid #2a2a4a; font-size: 12px; color: #888; }
+
+    /* ===== 主内容区 ===== */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    .topbar {
+      background: #fff; padding: 0 32px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid #e8e8e8; flex-shrink: 0;
+    }
+    .topbar-title { font-size: 18px; font-weight: bold; color: #1a1a2e; }
+    .topbar-actions { display: flex; gap: 12px; align-items: center; }
+    .btn {
+      padding: 8px 20px; border-radius: 6px; border: none;
+      cursor: pointer; font-size: 14px; font-family: inherit; transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: #e0c97f; color: #1a1a2e; font-weight: bold; }
+    .btn-outline { background: transparent; border: 1px solid #ddd; color: #555; }
+    .btn-dark    { background: #1a1a2e; color: #fff; font-weight: bold; }
+
+    .content { flex: 1; overflow-y: auto; padding: 28px 32px; }
+
+    /* ===== 参数控制区 ===== */
+    .controls-box {
+      background: #fff; border-radius: 12px; border: 1px solid #eee;
+      padding: 18px 24px; margin-bottom: 20px;
+      display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap;
+    }
+    .control-group { display: flex; flex-direction: column; gap: 10px; }
+    .control-item  { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+    .control-item label { color: #555; white-space: nowrap; min-width: 80px; }
+    .control-item input[type=range] { width: 120px; accent-color: #e0c97f; }
+    .control-item b { min-width: 28px; color: #1a1a2e; }
+    .control-item span { font-size: 11px; color: #bbb; }
+    .control-hint {
+      flex: 1; min-width: 220px;
+      font-size: 12px; color: #999; line-height: 1.9;
+      border-left: 3px solid #e0c97f; padding-left: 14px;
+      align-self: center;
+    }
+    .control-hint code {
+      background: #f5f5f5; border-radius: 3px; padding: 0 4px;
+      font-family: monospace; color: #555;
+    }
+
+    /* ===== 上传区 ===== */
+    .upload-box {
+      border: 2px dashed #d0d0d0; border-radius: 12px;
+      background: #fff; padding: 36px 20px;
+      text-align: center; cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      margin-bottom: 20px;
+    }
+    .upload-box:hover, .upload-box.drag-over {
+      border-color: #e0c97f; background: #fffdf0;
+    }
+    .upload-icon  { font-size: 44px; margin-bottom: 10px; }
+    .upload-title { font-size: 15px; font-weight: bold; color: #1a1a2e; margin-bottom: 6px; }
+    .upload-hint  { font-size: 13px; color: #aaa; }
+    .upload-hint strong { color: #e0c97f; }
+    #fileInput { display: none; }
+
+    /* ===== 进度条 ===== */
+    .progress-wrap { display: none; margin-bottom: 20px; }
+    .progress-bar-bg { background: #f0f0f0; border-radius: 20px; height: 8px; overflow: hidden; margin-bottom: 6px; }
+    .progress-bar-fg { height: 100%; background: #e0c97f; border-radius: 20px; transition: width 0.3s; width: 0; }
+    .progress-text   { font-size: 13px; color: #888; }
+
+    /* ===== 结果区 ===== */
+    .section-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px;
+    }
+    .section-title   { font-size: 15px; font-weight: bold; color: #1a1a2e; }
+    .section-actions { display: flex; gap: 8px; }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 18px;
+    }
+
+    .result-card {
+      background: #fff; border-radius: 10px; overflow: hidden;
+      border: 1px solid #eee; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .card-head {
+      padding: 10px 14px; font-size: 13px; font-weight: bold; color: #1a1a2e;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .card-head small { font-weight: normal; font-size: 11px; color: #aaa; }
+    .card-imgs { display: flex; }
+    .card-imgs > div {
+      flex: 1; padding: 10px; text-align: center;
+      border-right: 1px solid #f5f5f5;
+    }
+    .card-imgs > div:last-child { border-right: none; }
+    .card-imgs label { font-size: 11px; color: #aaa; display: block; margin-bottom: 5px; }
+    .card-imgs img {
+      width: 100%; height: 120px; object-fit: contain; display: block; border-radius: 4px;
+      /* 棋盘格背景，方便观察透明区域 */
+      background: repeating-conic-gradient(#e0e0e0 0% 25%, #fff 0% 50%) 0 0 / 12px 12px;
+    }
+    .card-foot {
+      padding: 10px 14px; border-top: 1px solid #f0f0f0;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      flex-wrap: wrap; min-height: 44px;
+    }
+    .badge       { font-size: 11px; padding: 2px 8px; border-radius: 4px; }
+    .badge-wait  { background: #f0f0f0; color: #999; }
+    .badge-run   { background: #e8f0fe; color: #3b5bdb; }
+    .badge-ok    { background: #e6f9f0; color: #27ae60; }
+    .badge-warn  { background: #fff3cd; color: #856404; }
+    .badge-err   { background: #fde8e8; color: #c0392b; }
+    .card-btns   { display: flex; gap: 6px; }
+    .btn-sm {
+      padding: 4px 12px; border-radius: 4px; border: none;
+      font-size: 12px; font-family: inherit; cursor: pointer;
+      font-weight: bold; transition: opacity 0.2s; text-decoration: none;
+      display: inline-block;
+    }
+    .btn-sm:hover    { opacity: 0.85; }
+    .btn-sm:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* 空状态 */
+    .empty-state { grid-column: 1 / -1; text-align: center; padding: 60px 0; color: #ccc; }
+    .empty-state .ei { font-size: 52px; display: block; margin-bottom: 12px; }
+    .empty-state p   { font-size: 14px; }
+
+    /* ===== 灯箱 ===== */
+    .lightbox {
+      display: none; position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,0.88);
+      align-items: center; justify-content: center;
+      cursor: zoom-out;
+    }
+    .lightbox.active { display: flex; }
+    .lightbox-img {
+      max-width: 90vw; max-height: 88vh;
+      object-fit: contain; border-radius: 4px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+      cursor: default; transform-origin: center;
+      transition: transform 0.15s; user-select: none;
+    }
+    .lightbox-close {
+      position: fixed; top: 18px; right: 26px;
+      font-size: 36px; color: #fff; cursor: pointer;
+      line-height: 1; user-select: none; opacity: 0.7; transition: opacity 0.2s;
+    }
+    .lightbox-close:hover { opacity: 1; }
+    .lightbox-info {
+      position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+      font-size: 12px; color: rgba(255,255,255,0.45);
+      pointer-events: none; white-space: nowrap;
+    }
+    .lightbox-zoom {
+      position: fixed; bottom: 16px; right: 24px;
+      display: flex; gap: 8px;
+    }
+    .zoom-btn {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
+      color: #fff; font-size: 16px; font-family: inherit; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s;
+    }
+    .zoom-btn:hover { background: rgba(255,255,255,0.28); }
+  </style>
+</head>
+<body>
+
+  <!-- 左侧功能栏 -->
+  <aside class="sidebar">
+    <div class="sidebar-logo" onclick="location.href='index.html'">
+      扇艺广告
+      <span>广告扇子定制平台</span>
+    </div>
+    <nav>
+      <div class="nav-section-title">主菜单</div>
+      <a class="nav-item" href="index.html"><span class="icon">🏠</span> 首页</a>
+      <a class="nav-item" href="#"><span class="icon">🪭</span> 产品目录</a>
+      <a class="nav-item" href="customize.html"><span class="icon">✏️</span> 在线定制</a>
+      <a class="nav-item" href="templates.html"><span class="icon">🎨</span> 设计模板</a>
+      <a class="nav-item active" href="fan-batch-color.html"><span class="icon">🖌️</span> 批量染色</a>
+      <div class="nav-section-title">设置</div>
+      <a class="nav-item" href="#"><span class="icon">⚙️</span> 系统设置</a>
+      <a class="nav-item" href="#"><span class="icon">👤</span> 账号管理</a>
+    </nav>
+    <div class="sidebar-footer">© 2026 扇艺广告</div>
+  </aside>
+
+  <!-- 主内容区 -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-title">批量扇面染色</div>
+      <div class="topbar-actions">
+        <span id="userLabel" style="font-size:13px;color:#888;"></span>
+        <button class="btn btn-outline" id="logoutBtn" style="margin-left:4px;">退出</button>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- 参数控制区 -->
+      <div class="controls-box">
+        <div class="control-group">
+          <!-- 容差：控制"纯白色"的判断宽容度，值越大越宽松 -->
+          <div class="control-item">
+            <label>白色容差：</label>
+            <input type="range" id="tolSlider" min="1" max="30" value="10">
+            <b id="tolVal">10</b>
+            <span>（R/G/B &gt; 255 - 容差）</span>
+          </div>
+          <!-- 分界线：Y坐标超过此百分比的像素一律跳过，保护扇骨/扇柄 -->
+          <div class="control-item">
+            <label>扇骨分界线：</label>
+            <input type="range" id="ySlider" min="20" max="95" value="60">
+            <b id="yVal">60</b>%
+            <span>（只处理此高度以上的像素）</span>
+          </div>
+        </div>
+        <div class="control-hint">
+          <b>双重染色判断条件（两者同时满足才替换颜色）</b><br>
+          ① <b>颜色条件</b>：<code>R &gt; 245</code> 且 <code>G &gt; 245</code> 且 <code>B &gt; 245</code> 且不透明<br>
+          &nbsp;&nbsp;→ 纯白扇面满足；浅灰扇骨（RGB ≈ 150~230）不满足，不会被误改<br>
+          ② <b>坐标条件</b>：<code>像素Y &lt; 图片高度 × 分界线%</code><br>
+          &nbsp;&nbsp;→ 扇面在上方满足；扇骨/扇柄在下方，分界线以下整行跳过
+        </div>
+      </div>
+
+      <!-- 上传区 -->
+      <div class="upload-box" id="uploadBox">
+        <input type="file" id="fileInput" multiple accept=".png,image/png" />
+        <div class="upload-icon">🖼️</div>
+        <div class="upload-title">点击或拖拽 PNG 文件到此处，开始批量染色</div>
+        <div class="upload-hint">仅支持 <strong>PNG</strong> 格式，可同时选择多个文件</div>
+      </div>
+
+      <!-- 进度条 -->
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fg" id="progressFg"></div>
+        </div>
+        <div class="progress-text" id="progressText">准备中…</div>
+      </div>
+
+      <!-- 结果区 -->
+      <div class="section-header">
+        <div class="section-title">处理结果</div>
+        <div class="section-actions">
+          <button class="btn btn-dark" id="downloadAllBtn" style="display:none;">全部下载</button>
+        </div>
+      </div>
+
+      <div class="result-grid" id="resultGrid">
+        <div class="empty-state">
+          <span class="ei">🖌️</span>
+          <p>上传 PNG 扇子模板后，染色结果将显示在这里</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 灯箱：双击染色结果图放大预览 -->
+  <div class="lightbox" id="lightbox">
+    <span class="lightbox-close" id="lightboxClose">×</span>
+    <img class="lightbox-img" id="lightboxImg" src="" alt="预览">
+    <div class="lightbox-info" id="lightboxInfo"></div>
+    <div class="lightbox-zoom">
+      <button class="zoom-btn" id="zoomOutBtn" title="缩小">−</button>
+      <button class="zoom-btn" id="zoomResetBtn" title="重置缩放">1:1</button>
+      <button class="zoom-btn" id="zoomInBtn" title="放大">+</button>
+    </div>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════
+    // 鉴权：未登录则跳转到登录页
+    // ═══════════════════════════════════════════════════════════════
+    const API   = 'http://localhost:5000';
+    const token = localStorage.getItem('token');
+    if (!token) { location.href = 'login.html'; }
+
+    const currentUser = localStorage.getItem('currentUser');
+    if (currentUser) {
+      document.getElementById('userLabel').textContent = '你好，' + currentUser;
+    }
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('currentUser');
+      location.href = 'login.html';
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    // 参数滑块：实时同步显示值
+    // ═══════════════════════════════════════════════════════════════
+    const tolSlider = document.getElementById('tolSlider');
+    const ySlider   = document.getElementById('ySlider');
+    tolSlider.addEventListener('input', () => {
+      document.getElementById('tolVal').textContent = tolSlider.value;
+    });
+    ySlider.addEventListener('input', () => {
+      document.getElementById('yVal').textContent = ySlider.value;
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    // 文件上传：支持点击选择 + 拖拽放入
+    // ═══════════════════════════════════════════════════════════════
+    const uploadBox = document.getElementById('uploadBox');
+    const fileInput = document.getElementById('fileInput');
+
+    uploadBox.addEventListener('click', () => fileInput.click());
+
+    uploadBox.addEventListener('dragover', e => {
+      e.preventDefault();
+      uploadBox.classList.add('drag-over');
+    });
+    uploadBox.addEventListener('dragleave', () => {
+      uploadBox.classList.remove('drag-over');
+    });
+    uploadBox.addEventListener('drop', e => {
+      e.preventDefault();
+      uploadBox.classList.remove('drag-over');
+      // 只接受 PNG 文件，非 PNG 静默过滤
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'image/png');
+      if (files.length) processFiles(files);
+      else alert('请拖入 PNG 格式的图片文件');
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) processFiles(Array.from(fileInput.files));
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    // 处理结果缓存（用于"全部下载"和"存入模板库"）
+    // 每条记录格式：{ name: string, dataUrl: string }
+    // ═══════════════════════════════════════════════════════════════
+    const processedResults = [];
+
+    // ═══════════════════════════════════════════════════════════════
+    // 主处理流程：遍历文件列表，逐一染色，渲染卡片
+    // ═══════════════════════════════════════════════════════════════
+    async function processFiles(files) {
+      // 清空上一批结果，准备新一轮处理
+      processedResults.length = 0;
+      document.getElementById('resultGrid').innerHTML = '';
+      document.getElementById('downloadAllBtn').style.display = 'none';
+
+      // 读取当前参数值
+      const tolerance  = parseInt(tolSlider.value, 10);      // 白色容差（整数 1~30）
+      const yThreshold = parseInt(ySlider.value,   10) / 100; // 扇骨分界线（转为 0.xx 小数）
+
+      // 显示并初始化进度条
+      const progressWrap = document.getElementById('progressWrap');
+      const progressFg   = document.getElementById('progressFg');
+      const progressText = document.getElementById('progressText');
+      progressWrap.style.display = 'block';
+      progressFg.style.width     = '0';
+
+      for (let i = 0; i < files.length; i++) {
+        const file   = files[i];
+        const cardId = 'rc-' + i;  // 每张图片唯一卡片 ID
+
+        // 更新进度条（处理前就更新，给用户即时反馈）
+        progressFg.style.width   = (i / files.length * 100) + '%';
+        progressText.textContent = `正在处理 ${i + 1} / ${files.length}：${file.name}`;
+
+        // 预创建卡片，显示"处理中"占位状态
+        appendCard(cardId, file.name, file.size);
+        setCardState(cardId, 'run', '处理中…');
+
+        try {
+          // ── 步骤1：读取本地文件为 dataURL ──────────────────────
+          // 使用 FileReader 读取，完全本地操作，不产生任何网络请求，无跨域问题
+          const originalDataUrl = await readFileAsDataURL(file);
+
+          // ── 步骤2：在卡片左侧展示原图 ──────────────────────────
+          setCardImage(cardId, 'original', originalDataUrl);
+
+          // ── 步骤3：核心染色处理 ─────────────────────────────────
+          const result = await colorFanFace(originalDataUrl, tolerance, yThreshold);
+          const { dataUrl: coloredDataUrl, changedCount, samplePixel } = result;
+
+          // ── 步骤4：在卡片右侧展示染色结果 ──────────────────────
+          setCardImage(cardId, 'result', coloredDataUrl);
+
+          // ── 步骤5：缓存结果，文件名加 colored_ 前缀避免覆盖原图 ─
+          const coloredName = 'colored_' + file.name;
+          processedResults.push({ name: coloredName, dataUrl: coloredDataUrl });
+
+          // ── 步骤6：更新卡片状态（显示修改像素数，帮助诊断）───────
+          if (changedCount > 0) {
+            setCardState(cardId, 'ok', '✓ 已修改 ' + changedCount.toLocaleString() + ' 个像素');
+          } else {
+            // 0个像素被修改 → 参数不匹配，显示采样值帮助调整
+            setCardState(cardId, 'warn',
+              '⚠ 0个像素被修改  采样(中心30%处): R=' + samplePixel.r +
+              ' G=' + samplePixel.g + ' B=' + samplePixel.b + ' A=' + samplePixel.a +
+              '  请调整参数后重新上传'
+            );
+          }
+          addCardButtons(cardId, coloredDataUrl, coloredName);
+
+        } catch (err) {
+          // 单张失败不中断整批流程，仅将该卡片标记为失败
+          setCardState(cardId, 'err', '✕ ' + err.message.slice(0, 50));
+        }
+      }
+
+      // ── 全部处理完毕 ──────────────────────────────────────────
+      progressFg.style.width   = '100%';
+      progressText.textContent = `全部完成，共处理 ${files.length} 张`;
+      if (processedResults.length > 0) {
+        document.getElementById('downloadAllBtn').style.display = 'inline-block';
+      }
+
+      fileInput.value = '';  // 清空 input，允许重复选择同一批文件
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 核心算法：扇面染色
+    //
+    // ┌─────────────────────────────────────────────────────────┐
+    // │  判断一个像素是否应被染色，需同时满足以下两个条件：         │
+    // │                                                         │
+    // │  条件1（颜色判断）——识别纯白扇面，排除浅灰扇骨：           │
+    // │    R > (255 - tolerance)                                │
+    // │    G > (255 - tolerance)                                │
+    // │    B > (255 - tolerance)                                │
+    // │    A >= 128（不透明，排除透明背景）                       │
+    // │                                                         │
+    // │    · 纯白扇面  R=255,G=255,B=255 → 满足 ✓              │
+    // │    · 浅灰扇骨  R/G/B ≈ 150~230  → 不满足 ✗ 不会误改    │
+    // │    · 深色轮廓  R/G/B < 150      → 不满足 ✗ 不会误改    │
+    // │    · 透明背景  A < 128          → 提前跳过 ✗ 不会误改   │
+    // │                                                         │
+    // │  条件2（坐标判断）——限制在扇骨分界线以上，排除扇柄：        │
+    // │    Y < Math.floor(图片高度 × yThreshold)                │
+    // │                                                         │
+    // │    · 扇面圆弧集中在图片上方    → 处理 ✓                  │
+    // │    · 扇骨主要在分界线以下      → 整行跳过 ✗ 不会误改     │
+    // │    · 扇柄在图片最底部          → 整行跳过 ✗ 不会误改     │
+    // └─────────────────────────────────────────────────────────┘
+    //
+    // @param {string} dataUrl     原图的 base64 dataURL
+    // @param {number} tolerance   白色容差，默认 10（范围 1~30）
+    // @param {number} yThreshold  分界线百分比小数，默认 0.60
+    // @returns {Promise<string>}  染色后的 PNG dataURL
+    // ═══════════════════════════════════════════════════════════════
+    function colorFanFace(dataUrl, tolerance, yThreshold) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+
+        img.onload = () => {
+          const W = img.naturalWidth;   // 图片宽度（像素）
+          const H = img.naturalHeight;  // 图片高度（像素）
+
+          // 创建离屏 Canvas（不挂载到 DOM，不影响页面渲染）
+          const canvas  = document.createElement('canvas');
+          canvas.width  = W;
+          canvas.height = H;
+          const ctx = canvas.getContext('2d');
+
+          // 将原图绘制到 Canvas，保留原始 alpha 通道
+          ctx.drawImage(img, 0, 0);
+
+          // 读取全部像素数据
+          // imageData.data 是 Uint8ClampedArray，每 4 个元素为一个像素：[R, G, B, A, R, G, B, A, ...]
+          const imageData = ctx.getImageData(0, 0, W, H);
+          const px        = imageData.data;
+
+          // 目标颜色：#111111 = RGB(17, 17, 17)
+          const TARGET_R = 17;
+          const TARGET_G = 17;
+          const TARGET_B = 17;
+
+          // 预计算分界线 Y 坐标（此行及以下全部跳过，保护扇骨/扇柄）
+          const yLimit = Math.floor(H * yThreshold);
+
+          // 白色阈值：三个通道都必须 >= 此值才视为"白色"
+          const whiteMin = 255 - tolerance;
+
+          // 诊断：采集图片中心偏上位置的样本像素（Y=30%处），打印到控制台
+          const sampleY = Math.floor(H * 0.3);
+          const sampleX = Math.floor(W / 2);
+          const si = (sampleY * W + sampleX) * 4;
+          const sp = { r: px[si], g: px[si+1], b: px[si+2], a: px[si+3] };
+          const spPass = sp.a >= 128 && sp.r >= whiteMin && sp.g >= whiteMin && sp.b >= whiteMin;
+          console.log(
+            '[扇面染色] 图片=' + W + 'x' + H +
+            '  分界线Y=' + yLimit + '(' + Math.round(yThreshold*100) + '%)' +
+            '  阈值=' + whiteMin + '\n' +
+            '  中心采样(' + sampleX + ',' + sampleY + '): ' +
+            'R=' + sp.r + ' G=' + sp.g + ' B=' + sp.b + ' A=' + sp.a +
+            '  ' + (spPass ? '=> 满足条件，会被染色' : '=> 不满足，请调整参数')
+          );
+
+          let changedCount = 0;
+
+          // ── 逐行扫描 ──────────────────────────────────────────
+          for (let y = 0; y < H; y++) {
+            // 分界线以下整行跳过（保护扇骨/扇柄）
+            if (y >= yLimit) break;
+
+            for (let x = 0; x < W; x++) {
+              const i = (y * W + x) * 4;
+              const r = px[i];
+              const g = px[i + 1];
+              const b = px[i + 2];
+              const a = px[i + 3];
+
+              // 透明像素（背景）：跳过
+              if (a < 128) continue;
+
+              // 颜色不够白（扇骨/轮廓）：跳过
+              if (r < whiteMin || g < whiteMin || b < whiteMin) continue;
+
+              // 两个条件均满足 → 替换为 #111111
+              px[i]     = TARGET_R;
+              px[i + 1] = TARGET_G;
+              px[i + 2] = TARGET_B;
+              // alpha 通道不变
+              changedCount++;
+            }
+          }
+
+          console.log('[扇面染色] 共修改了 ' + changedCount.toLocaleString() + ' 个像素');
+
+          ctx.putImageData(imageData, 0, 0);
+          resolve({ dataUrl: canvas.toDataURL('image/png'), changedCount, samplePixel: sp });
+        };
+
+        img.onerror = () => reject(new Error('图片加载失败'));
+
+        // 直接赋值 dataURL，完全本地操作，不涉及网络，不存在跨域限制
+        img.src = dataUrl;
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 工具函数
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * 将 File 对象读取为 base64 dataURL
+     * FileReader 是纯本地 API，不产生任何网络请求，无跨域问题
+     */
+    function readFileAsDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = e  => resolve(e.target.result);
+        reader.onerror = () => reject(new Error('文件读取失败：' + file.name));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    /** 文件大小格式化（Bytes → KB / MB） */
+    function formatSize(bytes) {
+      return bytes < 1024 * 1024
+        ? (bytes / 1024).toFixed(1) + ' KB'
+        : (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 卡片 DOM 操作
+    // ═══════════════════════════════════════════════════════════════
+
+    /** 在结果网格末尾新增一张卡片（图片初始为半透明占位） */
+    function appendCard(id, name, size) {
+      const grid  = document.getElementById('resultGrid');
+      const empty = grid.querySelector('.empty-state');
+      if (empty) empty.remove();  // 移除"暂无结果"空状态
+
+      const shortName = name.length > 22 ? name.slice(0, 20) + '…' : name;
+      const card = document.createElement('div');
+      card.className = 'result-card';
+      card.id        = id;
+      card.innerHTML = `
+        <div class="card-head">
+          <span title="${name}">${shortName}</span>
+          <small>${formatSize(size)}</small>
+        </div>
+        <div class="card-imgs">
+          <div>
+            <label>原图</label>
+            <img id="${id}-original" src="" alt="原图" style="opacity:.2">
+          </div>
+          <div>
+            <label>染色后</label>
+            <img id="${id}-result" src="" alt="染色后" style="opacity:.2">
+          </div>
+        </div>
+        <div class="card-foot" id="${id}-foot">
+          <span class="badge badge-wait">等待中</span>
+        </div>
+      `;
+      grid.appendChild(card);
+    }
+
+    /** 更新卡片指定侧（original / result）的图片；染色结果图双击可放大 */
+    function setCardImage(id, side, dataUrl) {
+      const img = document.getElementById(`${id}-${side}`);
+      if (!img) return;
+      img.src = dataUrl;
+      img.style.opacity = '1';
+      if (side === 'result') {
+        img.style.cursor = 'zoom-in';
+        img.title = '双击放大';
+        img.addEventListener('dblclick', () => {
+          const card   = document.getElementById(id);
+          const nameEl = card && card.querySelector('.card-head span');
+          openLightbox(dataUrl, nameEl ? (nameEl.getAttribute('title') || nameEl.textContent) : '');
+        });
+      }
+    }
+
+    /** 更新卡片底部状态徽章文字和样式 */
+    function setCardState(id, type, msg) {
+      const foot = document.getElementById(`${id}-foot`);
+      if (!foot) return;
+      const cls      = { ok: 'badge-ok', run: 'badge-run', err: 'badge-err' }[type] || 'badge-wait';
+      const existing = foot.querySelector('.badge');
+      if (existing) {
+        existing.className   = 'badge ' + cls;
+        existing.textContent = msg;
+      } else {
+        foot.insertAdjacentHTML('afterbegin', `<span class="badge ${cls}">${msg}</span>`);
+      }
+    }
+
+    /**
+     * 在卡片底部添加两个操作按钮：
+     *   1. 下载：触发浏览器下载，文件名带 colored_ 前缀，不覆盖原图
+     *   2. 存入模板：调用 /api/templates/upload 接口，将染色图存入模板库
+     */
+    function addCardButtons(id, dataUrl, filename) {
+      const foot = document.getElementById(`${id}-foot`);
+      if (!foot) return;
+
+      const btns = document.createElement('div');
+      btns.className = 'card-btns';
+
+      // 下载按钮（<a> 标签，href 指向 dataURL，download 属性触发浏览器下载）
+      const dlBtn       = document.createElement('a');
+      dlBtn.href        = dataUrl;
+      dlBtn.download    = filename;
+      dlBtn.className   = 'btn-sm';
+      dlBtn.style.cssText = 'background:#e0c97f;color:#1a1a2e;';
+      dlBtn.textContent = '下载';
+      btns.appendChild(dlBtn);
+
+      // 存入模板库按钮（调用后端接口）
+      const saveBtn = document.createElement('button');
+      saveBtn.className   = 'btn-sm';
+      saveBtn.style.cssText = 'background:transparent;border:1px solid #ddd;color:#555;';
+      saveBtn.textContent = '存入模板';
+      saveBtn.addEventListener('click', () => saveToTemplates(dataUrl, filename, saveBtn));
+      btns.appendChild(saveBtn);
+
+      foot.appendChild(btns);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 全部下载：逐个触发，每隔 300ms 一张，防止浏览器拦截多个下载
+    // ═══════════════════════════════════════════════════════════════
+    document.getElementById('downloadAllBtn').addEventListener('click', () => {
+      processedResults.forEach((item, idx) => {
+        setTimeout(() => {
+          const a  = document.createElement('a');
+          a.href     = item.dataUrl;
+          a.download = item.name;
+          a.click();
+        }, idx * 300);
+      });
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    // 存入模板库：将 dataURL 转为 Blob，通过现有上传接口存入服务器
+    // 复用 POST /api/templates/upload（与设计模板页面共用同一套存储逻辑）
+    // ═══════════════════════════════════════════════════════════════
+    async function saveToTemplates(dataUrl, filename, btn) {
+      btn.disabled    = true;
+      btn.textContent = '保存中…';
+
+      try {
+        // 将 base64 dataURL 转为 Blob：fetch 本地 dataURL 是纯浏览器内部操作，无网络请求
+        const fetchRes = await fetch(dataUrl);
+        const blob     = await fetchRes.blob();
+
+        // 构造 multipart/form-data，复用 multer 处理的上传接口
+        const formData = new FormData();
+        formData.append('files', blob, filename);
+
+        const uploadRes = await fetch(`${API}/api/templates/upload`, {
+          method:  'POST',
+          headers: { 'Authorization': 'Bearer ' + token },
+          body:    formData,
+        });
+
+        if (uploadRes.status === 401) { location.href = 'login.html'; return; }
+
+        if (uploadRes.ok) {
+          btn.textContent      = '✓ 已保存';
+          btn.style.background = '#e6f9f0';
+          btn.style.color      = '#27ae60';
+          btn.style.border     = '1px solid #b2dfce';
+        } else {
+          const d = await uploadRes.json();
+          throw new Error(d.message || '上传失败');
+        }
+      } catch (err) {
+        btn.textContent      = '✕ 失败';
+        btn.style.background = '#fde8e8';
+        btn.style.color      = '#c0392b';
+        btn.style.border     = '1px solid #f5c6c6';
+        btn.title            = err.message;
+        btn.disabled         = false;  // 允许重试
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 灯箱：放大预览染色结果
+    // ═══════════════════════════════════════════════════════════════
+    let lbScale = 1;
+    const lightbox     = document.getElementById('lightbox');
+    const lightboxImg  = document.getElementById('lightboxImg');
+    const lightboxInfo = document.getElementById('lightboxInfo');
+
+    function openLightbox(src, name) {
+      lbScale = 1;
+      lightboxImg.src             = src;
+      lightboxImg.style.transform = 'scale(1)';
+      lightboxInfo.textContent    = (name ? name + '　' : '') + '滚轮缩放  ·  双击图片 / ESC 关闭';
+      lightbox.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    // 点击遮罩关闭
+    lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+    // 点击关闭按钮
+    document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+    // 双击图片本身关闭
+    lightboxImg.addEventListener('dblclick', e => { e.stopPropagation(); closeLightbox(); });
+    // ESC 键关闭
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && lightbox.classList.contains('active')) closeLightbox();
+    });
+
+    // 滚轮缩放
+    lightbox.addEventListener('wheel', e => {
+      e.preventDefault();
+      lbScale = Math.max(0.2, Math.min(8, lbScale + (e.deltaY < 0 ? 0.2 : -0.2)));
+      lightboxImg.style.transform = `scale(${lbScale})`;
+    }, { passive: false });
+
+    document.getElementById('zoomInBtn').addEventListener('click', e => {
+      e.stopPropagation();
+      lbScale = Math.min(8, +(lbScale + 0.5).toFixed(1));
+      lightboxImg.style.transform = `scale(${lbScale})`;
+    });
+    document.getElementById('zoomOutBtn').addEventListener('click', e => {
+      e.stopPropagation();
+      lbScale = Math.max(0.2, +(lbScale - 0.5).toFixed(1));
+      lightboxImg.style.transform = `scale(${lbScale})`;
+    });
+    document.getElementById('zoomResetBtn').addEventListener('click', e => {
+      e.stopPropagation();
+      lbScale = 1;
+      lightboxImg.style.transform = 'scale(1)';
+    });
+  </script>
+</body>
+</html>

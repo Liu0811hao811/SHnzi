@@ -44,7 +44,7 @@ const QUALITY_OPTIONS = [
 // 工具函数
 // ─────────────────────────────────────────────────────────
 
-/** 从 localStorage 读取历史记录，解析失败���回空数组 */
+/** 从 localStorage 读取历史记录，解析失败返回空数组 */
 function loadHistory() {
   try {
     return JSON.parse(localStorage.getItem(HISTORY_KEY)) ?? [];
@@ -431,11 +431,11 @@ export default function App() {
       {lightbox && (
         <div
           className="lightbox-mask"
-          onClick={() => setLightbox(null)}  /* 点击遮罩关闭 */
+          onClick={() => setLightbox(null)}
         >
           <div
             className="lightbox-box"
-            onClick={e => e.stopPropagation()}  /* 阻止冒泡 */
+            onClick={e => e.stopPropagation()}
           >
             <img
               src={lightbox.url}

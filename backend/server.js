@@ -54,10 +54,19 @@ app.use(cors({
   ],
   credentials: true,
 }));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
 
-// 静态文件（上传的模板）
-app.use('/uploads', express.static(uploadsDir));
+// 静态文件（上传的模板）— 明确设置 CORS 头，让 canvas crossOrigin 请求能读取像素
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(uploadsDir));
+
+// 背景去除模型数据（供前端客户端抠图使用）
+app.use('/bg-removal-data', express.static(
+  path.join(__dirname, 'node_modules/@imgly/background-removal-data/dist')
+));
 
 // 路由
 app.use('/api/auth',      authRoutes);

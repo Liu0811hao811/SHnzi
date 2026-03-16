@@ -67,6 +67,47 @@ router.get('/', authMiddleware, (req, res) => {
   res.json(userTemplates);
 });
 
+// GET /api/templates/by-link/:token — AI 链接页面专用（无需 JWT，用 ai-link token 换取模板列表）
+// 注意：此接口不做时间过期检查，模板列表始终与 templates.html 保持同步。
+// 对话权限（是否允许继续聊天）由 /api/ai-link/verify/:token 单独控制。
+router.get('/by-link/:token', (req, res) => {
+  const TOKENS_FILE = path.join(__dirname, '../data/ai-tokens.json');
+  let tokens = [];
+  try { tokens = JSON.parse(fs.readFileSync(TOKENS_FILE, 'utf-8')); } catch {}
+
+  const entry = tokens.find(t => t.token === req.params.token);
+  if (!entry) return res.status(404).json({ message: '链接无效' });
+
+  // 不检查 expiresAt：模板列表属于静态展示内容，与对话有效期无关
+  const templates     = readTemplates();
+  const userTemplates = templates.filter(t => t.uploader === entry.userId);
+  res.json(userTemplates);
+});
+
+// PUT /api/templates/:id/overwrite — 用 base64 PNG 覆盖原文件（批量染色专用）
+router.put('/:id/overwrite', authMiddleware, (req, res) => {
+  const templates = readTemplates();
+  const id        = Number(req.params.id);
+  const item      = templates.find(t => t.id === id && t.uploader === req.user.username);
+  if (!item) return res.status(404).json({ message: '模板不存在或无权限' });
+
+  const { dataUrl } = req.body;
+  if (!dataUrl || !dataUrl.startsWith('data:image/png;base64,')) {
+    return res.status(400).json({ message: '需要 PNG base64 dataUrl' });
+  }
+
+  const base64 = dataUrl.replace(/^data:image\/png;base64,/, '');
+  const buf    = Buffer.from(base64, 'base64');
+  const filePath = path.join(UPLOADS_DIR, item.filename);
+  fs.writeFileSync(filePath, buf);
+
+  // 同步更新文件大小
+  item.size = buf.length;
+  writeTemplates(templates);
+
+  res.json({ message: '覆盖成功', size: buf.length });
+});
+
 // DELETE /api/templates/:id — 删除指定模板
 router.delete('/:id', authMiddleware, (req, res) => {
   let templates = readTemplates();

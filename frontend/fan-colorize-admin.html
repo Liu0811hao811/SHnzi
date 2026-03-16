@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>扇面批量染色（自动覆盖）</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: "Microsoft YaHei", sans-serif; background: #f5f6fa; color: #333; padding: 32px; }
+    h1 { font-size: 20px; margin-bottom: 6px; color: #1a1a2e; }
+    .desc { font-size: 13px; color: #888; margin-bottom: 24px; line-height: 1.8; }
+
+    .config-row {
+      display: flex; gap: 20px; align-items: center; flex-wrap: wrap;
+      background: #fff; border-radius: 10px; padding: 16px 20px;
+      margin-bottom: 20px; font-size: 13px; border: 1px solid #eee;
+    }
+    .config-row label { display: flex; align-items: center; gap: 8px; }
+    .config-row input[type=range] { width: 100px; }
+
+    .btn {
+      padding: 10px 28px; border-radius: 8px; border: none;
+      font-size: 14px; font-family: inherit; cursor: pointer; font-weight: bold;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary  { background: #e0c97f; color: #1a1a2e; }
+    .btn-dark     { background: #1a1a2e; color: #fff; }
+
+    .progress-wrap { display: none; margin-bottom: 20px; }
+    .progress-bar-bg { background: #f0f0f0; border-radius: 20px; height: 8px; overflow: hidden; margin-bottom: 6px; }
+    .progress-bar-fg { height: 100%; background: #e0c97f; border-radius: 20px; transition: width 0.3s; width: 0; }
+    .progress-text { font-size: 13px; color: #888; }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+    .card {
+      background: #fff; border-radius: 12px; overflow: hidden;
+      border: 1px solid #eee; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .card-head {
+      padding: 10px 14px; font-size: 13px; font-weight: bold; color: #1a1a2e;
+      border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;
+    }
+    .card-head small { font-weight: normal; font-size: 11px; color: #aaa; }
+    .card-imgs { display: flex; }
+    .card-imgs > div { flex: 1; padding: 10px; text-align: center; }
+    .card-imgs label { font-size: 11px; color: #aaa; display: block; margin-bottom: 5px; }
+    .card-imgs img {
+      width: 100%; height: 130px; object-fit: contain; display: block; border-radius: 6px;
+      background: repeating-conic-gradient(#ddd 0% 25%, #fff 0% 50%) 0 0 / 12px 12px;
+    }
+    .card-foot {
+      padding: 9px 14px; border-top: 1px solid #f0f0f0;
+      display: flex; align-items: center; gap: 8px; min-height: 38px;
+    }
+    .badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; }
+    .badge-wait { background: #f0f0f0; color: #999; }
+    .badge-ok   { background: #e6f9f0; color: #27ae60; }
+    .badge-warn { background: #fff3cd; color: #856404; }
+    .badge-err  { background: #fde8e8; color: #c0392b; }
+    .badge-run  { background: #e8f0fe; color: #3b5bdb; }
+  </style>
+</head>
+<body>
+
+  <h1>扇面批量染色 · 自动覆盖上传文件</h1>
+  <p class="desc">
+    自动拉取所有已上传 PNG 模板 → Canvas 扫描线染色 → 覆盖服务器原文件。<br>
+    <strong style="color:#c0392b;">注意：此操作会直接覆盖 uploads 目录中的原始文件，请确认后再执行。</strong>
+  </p>
+
+  <!-- 参数 -->
+  <div class="config-row">
+    <label>
+      容差：
+      <input type="range" id="tol" min="0" max="60" value="15">
+      <b id="tolVal">15</b>
+    </label>
+    <label>
+      高度上限：
+      <input type="range" id="safe" min="50" max="100" value="78">
+      <b id="safeVal">78</b>%
+    </label>
+    <button class="btn btn-primary" id="btnRun">开始自动染色并覆盖</button>
+  </div>
+
+  <!-- 进度 -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-bar-bg"><div class="progress-bar-fg" id="progressFg"></div></div>
+    <div class="progress-text" id="progressText">准备中…</div>
+  </div>
+
+  <!-- 卡片列表 -->
+  <div class="cards" id="cards"></div>
+
+  <script>
+    const API   = 'http://localhost:5000';
+    const token = localStorage.getItem('token');
+    if (!token) { alert('请先登录后再访问此页'); location.href = 'login.html'; }
+
+    document.getElementById('tol').addEventListener('input', function(){ document.getElementById('tolVal').textContent = this.value; });
+    document.getElementById('safe').addEventListener('input', function(){ document.getElementById('safeVal').textContent = this.value; });
+
+    // ── 主流程 ─────────────────────────────────────────────────────
+    document.getElementById('btnRun').addEventListener('click', async () => {
+      const btn = document.getElementById('btnRun');
+      btn.disabled = true;
+
+      const tolerance  = parseInt(document.getElementById('tol').value);
+      const safeMaxPct = parseInt(document.getElementById('safe').value) / 100;
+      const tc = { r: 17, g: 17, b: 17 };  // #111111
+
+      // 1. 拉取模板列表
+      let templates;
+      try {
+        const res = await fetch(`${API}/api/templates`, { headers: { Authorization: 'Bearer ' + token } });
+        if (res.status === 401) { location.href = 'login.html'; return; }
+        templates = await res.json();
+      } catch {
+        alert('无法连接后端服务，请确认 http://localhost:5000 已启动');
+        btn.disabled = false;
+        return;
+      }
+
+      // 只处理 PNG/JPG 图片类型
+      const imgTemplates = templates.filter(t => /\.(png|jpe?g)$/i.test(t.filename));
+      if (imgTemplates.length === 0) {
+        alert('没有可处理的图片模板（仅支持 PNG/JPG）');
+        btn.disabled = false;
+        return;
+      }
+
+      // 2. 渲染初始卡片
+      renderCards(imgTemplates);
+
+      // 3. 显示进度条
+      const pw = document.getElementById('progressWrap');
+      pw.style.display = 'block';
+
+      // 4. 逐张处理
+      let done = 0;
+      for (const tpl of imgTemplates) {
+        setCardState(tpl.id, 'run', '处理中…');
+        setProgress(done, imgTemplates.length, `正在处理 ${tpl.name}…`);
+        try {
+          const dataUrl = await processFanImage(tpl.url, tc, tolerance, safeMaxPct);
+          // 上传覆盖
+          const r = await fetch(`${API}/api/templates/${tpl.id}/overwrite`, {
+            method:  'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body:    JSON.stringify({ dataUrl }),
+          });
+          const rd = await r.json();
+          if (r.ok) {
+            setCardResultImg(tpl.id, dataUrl);
+            setCardState(tpl.id, 'ok', `✓ 已覆盖（${(rd.size/1024).toFixed(0)} KB）`);
+          } else {
+            setCardState(tpl.id, 'err', '✕ 覆盖失败：' + rd.message);
+          }
+        } catch (err) {
+          setCardState(tpl.id, 'err', '✕ ' + err.message.slice(0, 50));
+        }
+        done++;
+      }
+      setProgress(done, imgTemplates.length, `全部完成，共处理 ${done} 张`);
+      btn.disabled = false;
+    });
+
+    // ── 进度 ──
+    function setProgress(done, total, text) {
+      document.getElementById('progressFg').style.width = (done / total * 100) + '%';
+      document.getElementById('progressText').textContent = text;
+    }
+
+    // ── 卡片渲染 ──
+    function renderCards(list) {
+      const el = document.getElementById('cards');
+      el.innerHTML = '';
+      list.forEach(tpl => {
+        const isImg = /\.(png|jpe?g)$/i.test(tpl.filename);
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.id = 'card-' + tpl.id;
+        card.innerHTML = `
+          <div class="card-head">
+            ${tpl.name}
+            <small>${(tpl.size/1024).toFixed(0)} KB</small>
+          </div>
+          <div class="card-imgs">
+            <div><label>原图</label><img src="${tpl.url}?t=${Date.now()}" alt="原图"></div>
+            <div><label>染色后</label><img id="result-${tpl.id}" src="${tpl.url}" alt="待处理" style="opacity:.3"></div>
+          </div>
+          <div class="card-foot" id="foot-${tpl.id}">
+            <span class="badge badge-wait">等待中</span>
+          </div>
+        `;
+        el.appendChild(card);
+      });
+    }
+
+    function setCardState(id, type, msg) {
+      const foot = document.getElementById('foot-' + id);
+      if (!foot) return;
+      const cls = { run:'badge-run', ok:'badge-ok', warn:'badge-warn', err:'badge-err' }[type] || 'badge-wait';
+      foot.innerHTML = `<span class="badge ${cls}">${msg}</span>`;
+    }
+
+    function setCardResultImg(id, dataUrl) {
+      const img = document.getElementById('result-' + id);
+      if (img) { img.src = dataUrl; img.style.opacity = '1'; }
+    }
+
+    // ── 核心算法：扫描线染色 ─────────────────────────────────────────
+    async function processFanImage(imgUrl, tc, tolerance, safeMaxPct) {
+      const img = await loadImage(imgUrl);
+      const W = img.naturalWidth, H = img.naturalHeight;
+
+      const cv = document.createElement('canvas');
+      cv.width = W; cv.height = H;
+      const ctx = cv.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+
+      const id = ctx.getImageData(0, 0, W, H);
+      const px = id.data;
+
+      // 是否为白色（扇面源色）
+      function isWhite(i) {
+        return px[i+3] > 128
+          && px[i]   >= 255 - tolerance
+          && px[i+1] >= 255 - tolerance
+          && px[i+2] >= 255 - tolerance;
+      }
+
+      // 逐行找最左/最右深色边界
+      const dL = new Int32Array(H).fill(-1);
+      const dR = new Int32Array(H).fill(-1);
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const i = (y * W + x) * 4;
+          if (px[i+3] > 128 && !isWhite(i)) {
+            if (dL[y] < 0) dL[y] = x;
+            dR[y] = x;
+          }
+        }
+      }
+
+      // 在边界内统计白像素数量与段落数
+      const rowCount = new Uint32Array(H);
+      const rowSegs  = new Uint32Array(H);
+      for (let y = 0; y < H; y++) {
+        if (dL[y] < 0 || dR[y] <= dL[y]) continue;
+        let inW = false;
+        for (let x = dL[y]+1; x < dR[y]; x++) {
+          const w = isWhite((y * W + x) * 4);
+          if (w) { rowCount[y]++; if (!inW) { rowSegs[y]++; inW = true; } }
+          else { inW = false; }
+        }
+      }
+      let maxRow = 0;
+      for (let y = 0; y < H; y++) if (rowCount[y] > maxRow) maxRow = rowCount[y];
+
+      const safeMaxY = Math.floor(H * safeMaxPct);
+
+      // 策略1A：峰值后连续2行空白 → 扇柄空隙截断
+      let cutY = safeMaxY, pastPeak = false, zeroRun = 0;
+      for (let y = 0; y < H; y++) {
+        if (!pastPeak && rowCount[y] >= maxRow * 0.5) { pastPeak = true; zeroRun = 0; }
+        if (pastPeak) {
+          if (rowCount[y] === 0) { if (++zeroRun >= 2) { cutY = Math.min(y-1, safeMaxY); break; } }
+          else { zeroRun = 0; }
+        }
+      }
+
+      // 策略1B：骨架线多段截断
+      if (cutY === safeMaxY) {
+        const minFace = Math.max(20, Math.floor(H * 0.10));
+        let cFace = 0, cRib = 0, ribY = -1;
+        for (let y = 0; y < H; y++) {
+          if (rowCount[y] < maxRow * 0.05) { cRib = 0; ribY = -1; continue; }
+          if (rowSegs[y] === 1) { cFace++; cRib = 0; ribY = -1; }
+          else {
+            if (cFace >= minFace) {
+              if (ribY < 0) ribY = y;
+              if (++cRib >= 3) { cutY = Math.min(ribY, safeMaxY); break; }
+            } else { cFace = 0; cRib = 0; ribY = -1; }
+          }
+        }
+      }
+
+      // 替换
+      for (let y = 0; y < H; y++) {
+        if (y >= cutY || y >= safeMaxY) continue;
+        if (dL[y] < 0 || dR[y] <= dL[y]) continue;
+        for (let x = dL[y]+1; x < dR[y]; x++) {
+          const i = (y * W + x) * 4;
+          if (isWhite(i)) { px[i] = tc.r; px[i+1] = tc.g; px[i+2] = tc.b; }
+        }
+      }
+
+      ctx.putImageData(id, 0, 0);
+      return cv.toDataURL('image/png');
+    }
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload  = () => resolve(img);
+        img.onerror = () => reject(new Error('图片加载失败：' + src.slice(0,60)));
+        img.src = src;
+      });
+    }
+  </script>
+</body>
+</html>

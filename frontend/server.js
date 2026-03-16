@@ -15,7 +15,8 @@ const mimeTypes = {
 };
 
 const routes = {
-  '/ai': 'ai-chat.html',
+  '/ai':     'ai-chat.html',
+  '/fusion': 'fusion.html',
 };
 
 const server = http.createServer((req, res) => {

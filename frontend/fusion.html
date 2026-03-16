@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 融合生图 - 扇艺广告</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Microsoft YaHei", sans-serif;
+      background: #f5f6fa;
+      color: #333;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header-title {
+      color: #e0c97f;
+      font-size: 17px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-back {
+      color: #aaa;
+      text-decoration: none;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: color 0.2s;
+    }
+    .header-back:hover { color: #e0c97f; }
+
+    /* ── Main layout ── */
+    .main {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+      padding: 20px 24px 32px;
+      max-width: 1280px;
+      margin: 0 auto;
+      align-items: start;
+    }
+    @media (max-width: 840px) {
+      .main { grid-template-columns: 1fr; }
+    }
+
+    /* ── Card ── */
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    /* ── Section title ── */
+    .sec-title {
+      font-size: 13px;
+      font-weight: bold;
+      color: #1a1a2e;
+      margin-bottom: 11px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .sec-num {
+      width: 20px;
+      height: 20px;
+      background: #1a1a2e;
+      color: #e0c97f;
+      border-radius: 50%;
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+    .divider { height: 18px; }
+
+    /* ── Upload zone ── */
+    .upload-zone {
+      border: 2px dashed #e0e0e0;
+      border-radius: 12px;
+      padding: 26px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: #fafafa;
+      margin-bottom: 10px;
+      user-select: none;
+    }
+    .upload-zone:hover,
+    .upload-zone.dragover { border-color: #e0c97f; background: #fffdf0; }
+    .upload-zone-icon { font-size: 30px; margin-bottom: 6px; }
+    .upload-zone-text { font-size: 13px; color: #888; }
+    .upload-zone-hint { font-size: 11px; color: #bbb; margin-top: 3px; }
+
+    /* ── Ref image grid ── */
+    .ref-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .ref-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 72px;
+    }
+    .ref-thumb {
+      position: relative;
+      width: 72px;
+      height: 72px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1.5px solid #e0e0e0;
+      flex-shrink: 0;
+    }
+    .ref-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .ref-thumb-rm {
+      position: absolute;
+      top: 2px; right: 2px;
+      width: 18px; height: 18px;
+      background: rgba(0,0,0,0.65);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      line-height: 1;
+    }
+    .ref-thumb-rm:hover { background: #e05c5c; }
+
+    /* Type select below each thumb */
+    .ref-type-sel {
+      width: 72px;
+      font-size: 10px;
+      font-family: inherit;
+      border: 1px solid #e0e0e0;
+      border-radius: 5px;
+      padding: 2px 4px;
+      color: #555;
+      background: #fafafa;
+      outline: none;
+      cursor: pointer;
+    }
+    .ref-type-sel:focus { border-color: #e0c97f; }
+
+    /* ── Scene textarea ── */
+    .scene-textarea {
+      width: 100%;
+      border: 1px solid #e8e8e8;
+      border-radius: 10px;
+      padding: 11px 13px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #333;
+      resize: none;
+      outline: none;
+      transition: border-color 0.2s;
+      line-height: 1.65;
+      background: #fafafa;
+    }
+    .scene-textarea:focus { border-color: #e0c97f; background: #fff; }
+    .scene-textarea::placeholder { color: #bbb; }
+
+    /* ── Example chips ── */
+    .examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .example-chip {
+      background: #f0f0f0;
+      border: 1px solid #e0e0e0;
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 11px;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .example-chip:hover { background: #fff8e6; border-color: #e0c97f; color: #7a6000; }
+
+    /* ── Size select ── */
+    .size-select {
+      border: 1px solid #e8e8e8;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      color: #333;
+      background: #fafafa;
+      outline: none;
+      width: 100%;
+      cursor: pointer;
+    }
+    .size-select:focus { border-color: #e0c97f; }
+
+    /* ── Prompt preview ── */
+    .prompt-preview-wrap { margin-top: 10px; }
+    .prompt-preview-label {
+      font-size: 11px;
+      color: #aaa;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .prompt-preview-label button {
+      background: none;
+      border: none;
+      font-size: 11px;
+      color: #bbb;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .prompt-preview-label button:hover { color: #888; }
+    .prompt-preview-box {
+      background: #f8f8f8;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      padding: 9px 11px;
+      font-size: 11px;
+      color: #888;
+      line-height: 1.65;
+      max-height: 90px;
+      overflow-y: auto;
+    }
+
+    /* ── Generate button ── */
+    .gen-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #e0c97f, #c9a227);
+      color: #1a1a2e;
+      font-weight: bold;
+      font-size: 15px;
+      font-family: inherit;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .gen-btn:hover:not(:disabled) { opacity: 0.9; }
+    .gen-btn:active:not(:disabled) { transform: scale(0.98); }
+    .gen-btn:disabled { background: #ddd; color: #aaa; cursor: not-allowed; }
+
+    /* inline spinner for button */
+    .btn-spinner {
+      width: 18px; height: 18px;
+      border: 3px solid rgba(0,0,0,0.15);
+      border-top-color: #1a1a2e;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    /* ── Tips box ── */
+    .tip-box {
+      background: #fff8e6;
+      border: 1px solid #f0dea0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: #7a6000;
+      line-height: 1.65;
+      margin-top: 16px;
+    }
+    .tip-box strong { display: block; margin-bottom: 5px; font-size: 13px; }
+    .tip-box li { margin-left: 14px; margin-top: 2px; }
+
+    /* ── Result panel ── */
+    .result-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      display: flex;
+      flex-direction: column;
+      min-height: 520px;
+    }
+    .result-header {
+      padding: 16px 22px;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .result-header-title {
+      font-size: 14px;
+      font-weight: bold;
+      color: #1a1a2e;
+      flex: 1;
+    }
+    .model-badge {
+      font-size: 11px;
+      font-weight: bold;
+      padding: 3px 9px;
+      border-radius: 20px;
+    }
+    .model-badge.i2i { background: #ede9fe; color: #6d28d9; }
+    .model-badge.t2i { background: #f0f0f0; color: #666; }
+
+    .result-body {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+    }
+
+    /* empty / loading / error / result states */
+    .empty-state { text-align: center; color: #ccc; }
+    .empty-state .big-icon { font-size: 62px; margin-bottom: 14px; }
+    .empty-state p { font-size: 14px; line-height: 1.8; }
+
+    .loading-state { text-align: center; color: #888; }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 4px solid #e0e0e0;
+      border-top-color: #e0c97f;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-state p { font-size: 14px; }
+    .loading-state small { font-size: 12px; color: #bbb; margin-top: 5px; display: block; }
+
+    .error-box {
+      background: #fff5f5;
+      border: 1px solid #fcc;
+      border-radius: 10px;
+      padding: 16px 20px;
+      font-size: 13px;
+      color: #c0392b;
+      text-align: center;
+      max-width: 360px;
+    }
+    .error-box strong { display: block; margin-bottom: 6px; font-size: 15px; }
+
+    /* result image */
+    .result-img-wrap { text-align: center; width: 100%; }
+    .result-img {
+      max-width: 100%;
+      max-height: 65vh;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+      cursor: zoom-in;
+      display: block;
+      margin: 0 auto;
+      transition: transform 0.2s;
+    }
+    .result-img:hover { transform: scale(1.01); }
+
+    .result-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #e0c97f;
+      color: #1a1a2e;
+      font-size: 13px;
+      font-weight: bold;
+      padding: 8px 18px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-family: inherit;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .action-btn:hover { background: #c9a227; }
+    .action-btn.secondary { background: #f0f0f0; color: #555; }
+    .action-btn.secondary:hover { background: #e0e0e0; }
+
+    /* ── Lightbox ── */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.88);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      cursor: zoom-out;
+    }
+    .lightbox img {
+      max-width: 92vw;
+      max-height: 92vh;
+      border-radius: 10px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-title">🎨 AI 融合生图</div>
+    <a class="header-back" href="ai">← 返回 AI 助手</a>
+  </div>
+
+  <div class="main">
+
+    <!-- ── 左列：配置区 ── -->
+    <div class="config-col">
+      <div class="card">
+
+        <!-- Step 1: 上传参考图 -->
+        <div class="sec-title">
+          <span class="sec-num">1</span>
+          上传参考图（可多张）
+        </div>
+        <div class="upload-zone" id="uploadZone"
+             onclick="document.getElementById('fileInput').click()">
+          <div class="upload-zone-icon">🖼</div>
+          <div class="upload-zone-text">点击或拖放图片到此处</div>
+          <div class="upload-zone-hint">PNG / JPG / GIF · 可多张同时上传</div>
+        </div>
+        <input type="file" id="fileInput" multiple accept="image/*"
+               style="display:none" onchange="handleRefUpload(event)">
+        <!-- 参考图缩略图网格（每张下方有类型下拉） -->
+        <div class="ref-grid" id="refGrid"></div>
+
+        <div class="divider"></div>
+
+        <!-- Step 2: 场景描述 -->
+        <div class="sec-title">
+          <span class="sec-num">2</span>
+          描述目标场景
+        </div>
+        <textarea
+          class="scene-textarea"
+          id="sceneInput"
+          rows="3"
+          placeholder="例：现代简约办公室前台，光线柔和明亮"
+          oninput="onSceneInput()"
+        ></textarea>
+        <!-- 快捷示例 -->
+        <div class="examples">
+          <span class="example-chip" onclick="setScene(this)">现代简约办公室前台</span>
+          <span class="example-chip" onclick="setScene(this)">中式茶室案台</span>
+          <span class="example-chip" onclick="setScene(this)">户外咖啡馆桌面</span>
+          <span class="example-chip" onclick="setScene(this)">中式折扇扇面</span>
+          <span class="example-chip" onclick="setScene(this)">城市商业街橱窗</span>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Step 3: 生成选项 -->
+        <div class="sec-title">
+          <span class="sec-num">3</span>
+          图片尺寸
+        </div>
+        <select class="size-select" id="sizeSelect" onchange="updatePromptPreview()">
+          <option value="1024x1024">1024 × 1024（正方形）</option>
+          <option value="1792x1024">1792 × 1024（横版宽屏）</option>
+          <option value="1024x1792">1024 × 1792（竖版海报）</option>
+        </select>
+
+        <!-- Prompt 预览（实时更新） -->
+        <div class="prompt-preview-wrap" id="promptPreviewWrap" style="display:none">
+          <div class="prompt-preview-label">
+            <span>AI 将收到的融合提示词：</span>
+            <button onclick="copyPrompt()">复制</button>
+          </div>
+          <div class="prompt-preview-box" id="promptPreview"></div>
+        </div>
+
+        <div class="divider"></div>
+
+        <button class="gen-btn" id="genBtn" onclick="generateFusion()">
+          ✨ 开始融合生图
+        </button>
+
+        <div class="tip-box">
+          <strong>💡 融合效果说明</strong>
+          <ul>
+            <li>AI 会将参考图作为场景原生元素生成，光影透视自然融合</li>
+            <li>简单 logo / 产品图融合效果较好</li>
+            <li>二维码精确识别依赖模型能力，不保证100%可扫</li>
+            <li>上传图片越清晰、场景描述越具体，效果越好</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── 右列：结果区 ── -->
+    <div class="result-area">
+      <div class="result-card">
+        <div class="result-header">
+          <span class="result-header-title">生成结果</span>
+          <span id="modelBadge" style="display:none" class="model-badge"></span>
+          <span id="resultMeta" style="font-size:12px;color:#bbb;"></span>
+        </div>
+        <div class="result-body" id="resultBody">
+          <div class="empty-state">
+            <div class="big-icon">🎨</div>
+            <p>上传参考图并输入场景描述<br>点击「开始融合生图」即可生成</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Lightbox ── -->
+  <div class="lightbox" id="lightbox" style="display:none" onclick="closeLightbox()">
+    <img id="lightboxImg" src="" alt="preview">
+  </div>
+
+  <script>
+    const API = 'http://localhost:5000';
+
+    // ── 参考图状态 ──────────────────────────────────────────────────
+    // 每项：{ dataUrl: string, name: string, type: string }
+    let refImages = [];
+
+    // ── 文件上传 ────────────────────────────────────────────────────
+    function handleRefUpload(event) {
+      const files = Array.from(event.target.files);
+      let loaded = 0;
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          refImages.push({ dataUrl: e.target.result, name: file.name, type: 'other' });
+          loaded++;
+          if (loaded === files.length) { renderRefGrid(); updatePromptPreview(); }
+        };
+        reader.readAsDataURL(file);
+      });
+      event.target.value = '';  // 允许重复选同一文件
+    }
+
+    function removeRef(idx) {
+      refImages.splice(idx, 1);
+      renderRefGrid();
+      updatePromptPreview();
+    }
+
+    function onTypeChange(idx, val) {
+      refImages[idx].type = val;
+      updatePromptPreview();
+    }
+
+    function renderRefGrid() {
+      const grid = document.getElementById('refGrid');
+      if (refImages.length === 0) { grid.innerHTML = ''; return; }
+      grid.innerHTML = refImages.map((img, i) => `
+        <div class="ref-item">
+          <div class="ref-thumb">
+            <img src="${img.dataUrl}" alt="">
+            <button class="ref-thumb-rm" onclick="removeRef(${i})" title="移除">×</button>
+          </div>
+          <select class="ref-type-sel" onchange="onTypeChange(${i}, this.value)">
+            <option value="other"  ${img.type==='other'  ?'selected':''}>其他素材</option>
+            <option value="logo"   ${img.type==='logo'   ?'selected':''}>Logo</option>
+            <option value="qrcode" ${img.type==='qrcode' ?'selected':''}>二维码</option>
+            <option value="product"${img.type==='product'?'selected':''}>产品图</option>
+            <option value="person" ${img.type==='person' ?'selected':''}>人物</option>
+          </select>
+        </div>
+      `).join('');
+    }
+
+    // ── 拖放支持 ────────────────────────────────────────────────────
+    const uploadZone = document.getElementById('uploadZone');
+    uploadZone.addEventListener('dragover', e => {
+      e.preventDefault(); uploadZone.classList.add('dragover');
+    });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+    uploadZone.addEventListener('drop', e => {
+      e.preventDefault(); uploadZone.classList.remove('dragover');
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+      if (!files.length) return;
+      let loaded = 0;
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          refImages.push({ dataUrl: ev.target.result, name: file.name, type: 'other' });
+          loaded++;
+          if (loaded === files.length) { renderRefGrid(); updatePromptPreview(); }
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    // ── 快捷场景 ────────────────────────────────────────────────────
+    function setScene(chip) {
+      document.getElementById('sceneInput').value = chip.textContent;
+      onSceneInput();
+    }
+
+    function onSceneInput() { updatePromptPreview(); }
+
+    // ── Prompt 预览 ─────────────────────────────────────────────────
+    // 与后端 buildServerFusionPrompt 逻辑镜像，方便前端实时预览
+    function buildClientPrompt(scene, images) {
+      if (!scene.trim()) return '';
+      const placementMap = {
+        logo:    '作为场景中的招牌或品牌标识放置',
+        qrcode:  '放置在立牌/桌卡/墙面位置，保证可扫码识别',
+        product: '自然陈列在场景核心位置，符合物理摆放逻辑',
+        person:  '与场景人物位置融合，保持面部清晰',
+        other:   '作为场景原生组成部分融入',
+      };
+      const placements = images.length > 0
+        ? images.map((img, i) =>
+            `参考图${i+1}（${img.type||'素材'}）${placementMap[img.type]||placementMap.other}`
+          ).join('；')
+        : '';
+      const refPart = placements
+        ? `将提供的${images.length}张参考图融入场景：${placements}。` : '';
+      const rules =
+        '所有参考元素与场景光影、透视、材质完全一致，视觉浑然一体，无拼接痕迹；' +
+        '保留Logo完整无变形、二维码可扫码识别、文字清晰可读；' +
+        '禁止生硬边缘、半透明叠加、水印；画质高清，符合真实物理逻辑。';
+      return `生成一张真实自然的${scene.trim()}。${refPart}${rules}`;
+    }
+
+    function updatePromptPreview() {
+      const scene = document.getElementById('sceneInput').value;
+      const wrap  = document.getElementById('promptPreviewWrap');
+      const box   = document.getElementById('promptPreview');
+      if (!scene.trim()) { wrap.style.display = 'none'; return; }
+      box.textContent = buildClientPrompt(scene, refImages);
+      wrap.style.display = 'block';
+    }
+
+    function copyPrompt() {
+      const text = document.getElementById('promptPreview').textContent;
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.querySelector('.prompt-preview-label button');
+        btn.textContent = '已复制 ✓';
+        setTimeout(() => { btn.textContent = '复制'; }, 1500);
+      });
+    }
+
+    // ── 生成 ────────────────────────────────────────────────────────
+    async function generateFusion() {
+      const scene = document.getElementById('sceneInput').value.trim();
+      if (!scene) {
+        alert('请先输入场景描述');
+        document.getElementById('sceneInput').focus();
+        return;
+      }
+
+      const genBtn    = document.getElementById('genBtn');
+      const resultBody = document.getElementById('resultBody');
+      const resultMeta = document.getElementById('resultMeta');
+      const modelBadge = document.getElementById('modelBadge');
+
+      genBtn.disabled = true;
+      genBtn.innerHTML = '<span class="btn-spinner"></span> 生成中…';
+      resultMeta.textContent = '';
+      modelBadge.style.display = 'none';
+
+      resultBody.innerHTML = `
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>AI 正在融合生图，请稍候…</p>
+          <small>通常需要 15–40 秒</small>
+        </div>
+      `;
+
+      // 将图片转为纯 base64（去掉 data URL 前缀）
+      const images     = refImages.map(img => img.dataUrl.replace(/^data:image\/[a-z+]+;base64,/, ''));
+      const imageTypes = refImages.map(img => img.type || 'other');
+      const size       = document.getElementById('sizeSelect').value;
+      const startTime  = Date.now();
+
+      try {
+        const res  = await fetch(`${API}/api/image/fusion`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ scene, images, imageTypes, size }),
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.images || !data.images[0]) {
+          showError(data.message || '未知错误');
+          return;
+        }
+
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        resultMeta.textContent = `耗时 ${elapsed}s`;
+
+        // 显示模型徽章
+        modelBadge.style.display = 'inline-block';
+        if (data.model === 'i2i') {
+          modelBadge.className = 'model-badge i2i';
+          modelBadge.textContent = '🔀 图生图融合';
+        } else {
+          modelBadge.className = 'model-badge t2i';
+          modelBadge.textContent = '✍️ 文生图增强';
+        }
+
+        showResult(data.images[0].url);
+
+      } catch (err) {
+        showError('网络错误：' + err.message);
+      } finally {
+        genBtn.disabled = false;
+        genBtn.innerHTML = '✨ 开始融合生图';
+      }
+    }
+
+    function showResult(imgUrl) {
+      const safeUrl = imgUrl.replace(/'/g, "\\'");
+      document.getElementById('resultBody').innerHTML = `
+        <div class="result-img-wrap">
+          <img
+            class="result-img"
+            src="${imgUrl}"
+            alt="融合生图结果"
+            onclick="openLightbox('${safeUrl}')"
+          >
+          <div class="result-actions">
+            <a class="action-btn" href="${imgUrl}" download="fusion-result.png">
+              ⬇ 下载图片
+            </a>
+            <button class="action-btn secondary" onclick="generateFusion()">
+              🔄 重新生成
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function showError(msg) {
+      document.getElementById('resultBody').innerHTML = `
+        <div class="error-box">
+          <strong>⚠ 生成失败</strong>
+          ${escapeHtml(msg)}
+        </div>
+      `;
+    }
+
+    // ── 灯箱 ────────────────────────────────────────────────────────
+    function openLightbox(url) {
+      document.getElementById('lightboxImg').src = url;
+      document.getElementById('lightbox').style.display = 'flex';
+    }
+    function closeLightbox() {
+      document.getElementById('lightbox').style.display = 'none';
+      document.getElementById('lightboxImg').src = '';
+    }
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeLightbox();
+    });
+
+    // ── 工具 ────────────────────────────────────────────────────────
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+  </script>
+
+</body>
+</html>
