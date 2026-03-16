@@ -193,6 +193,8 @@
       font-size: 18px;
       flex-shrink: 0;
       margin-top: 1px;
+      min-width: 24px;
+      text-align: center;
     }
 
     .feature-text { color: #555; line-height: 1.5; }
@@ -761,33 +763,40 @@
         </div>
 
         <div class="ai-features">
-          <div class="ai-features-title">能力介绍</div>
+          <div class="ai-features-title">功能按钮说明</div>
           <div class="feature-item">
-            <div class="feature-icon">🪭</div>
+            <div class="feature-icon">📷</div>
             <div class="feature-text">
-              <strong>产品咨询</strong>
-              折扇、圆扇、竹扇等款式选型建议
+              <strong>上传参考图</strong>
+              上传 Logo、产品图或二维码，点击图片标签可切换类型
             </div>
           </div>
           <div class="feature-item">
             <div class="feature-icon">🎨</div>
             <div class="feature-text">
-              <strong>设计指导</strong>
-              LOGO 排版、色彩搭配、印刷工艺建议
+              <strong>生成图片模式</strong>
+              开启后可根据文字描述 AI 生成扇面图片，再次点击关闭
             </div>
           </div>
           <div class="feature-item">
-            <div class="feature-icon">📦</div>
+            <div class="feature-icon">×1 / ×2</div>
             <div class="feature-text">
-              <strong>订单协助</strong>
-              起订量、价格、交期等常见问题解答
+              <strong>单图 / 双图模式</strong>
+              开启生成模式后可切换，×2 同时生成正面与反面两张图
             </div>
           </div>
           <div class="feature-item">
-            <div class="feature-icon">💡</div>
+            <div class="feature-icon">📋</div>
             <div class="feature-text">
-              <strong>营销建议</strong>
-              广告扇子投放策略与活动方案参考
+              <strong>选择扇子模板</strong>
+              选择预设扇面模板，AI 图将自动合成到扇面区域
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">➤</div>
+            <div class="feature-text">
+              <strong>发送消息</strong>
+              发送问题或生成指令，也可按 Enter 快速发送
             </div>
           </div>
         </div>
@@ -880,13 +889,12 @@
               placeholder="输入您的问题，例如：折扇定制需要提供哪些文件？"
               rows="1"
             ></textarea>
-            <button class="icon-btn" id="uploadImgBtn" title="上传参考图片">🖼</button>
+            <button class="icon-btn" id="uploadImgBtn" title="上传参考图片">📷</button>
             <input type="file" id="imgUploadInput" accept="image/*" multiple style="display:none;">
             <button class="icon-btn" id="modeBtn" title="切换生成图片模式">🎨</button>
             <button class="icon-btn dual-mode-btn" id="dualModeBtn" title="当前：单图模式（点击切换为双图）" style="display:none;">×1</button>
-            <button class="icon-btn" id="openTplBtn" title="选择扇子模板">🪭</button>
-            <button class="gen-img-btn" id="genImgBtn" style="display:none;">生成图片</button>
-            <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+            <button class="icon-btn" id="openTplBtn" title="选择扇子模板">📋</button>
+            <button class="send-btn" id="sendBtn">➤</button>
           </div>
           <div class="input-hint">按 Enter 发送 · Shift+Enter 换行</div>
         </div>
@@ -1275,11 +1283,18 @@
 
     function setImageMode(on) {
       imageMode = on;
-      const btn = document.getElementById('modeBtn');
-      btn.classList.toggle('active', on);
-      btn.title = on ? '已开启生成模式（点击关闭）' : '切换生成图片模式';
-      document.getElementById('genImgBtn').style.display = on ? '' : 'none';
+      const modeBtn = document.getElementById('modeBtn');
+      modeBtn.classList.toggle('active', on);
+      modeBtn.title = on ? '已开启生成模式（点击关闭）' : '切换生成图片模式';
       document.getElementById('dualModeBtn').style.display = on ? '' : 'none';
+      const sendBtn = document.getElementById('sendBtn');
+      if (on) {
+        sendBtn.className = 'gen-img-btn';
+        sendBtn.textContent = '生成图片';
+      } else {
+        sendBtn.className = 'send-btn';
+        sendBtn.textContent = '➤';
+      }
       if (!on) setDualMode(false);
     }
 
@@ -1865,7 +1880,7 @@
       if (!promptText) { document.getElementById('chatInput').focus(); return; }
       const { sceneText, imageInstrs } = parsePrompt(promptText);
 
-      const btn = document.getElementById('genImgBtn');
+      const btn = document.getElementById('sendBtn');
       btn.disabled = true;
       btn.textContent = '生成中…';
 
@@ -1973,7 +1988,10 @@
       }
     }
 
-    document.getElementById('genImgBtn').addEventListener('click', generateImage);
+    document.getElementById('sendBtn').addEventListener('click', () => {
+      if (imageMode) generateImage();
+      else sendMessage();
+    });
   </script>
 </body>
 </html>
