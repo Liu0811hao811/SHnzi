@@ -52,6 +52,7 @@
     .sidebar nav {
       flex: 1;
       padding: 16px 0;
+      overflow-y: auto;
     }
 
     .nav-section-title {
@@ -352,7 +353,7 @@
 
     .form-row {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: 280px;
       gap: 16px;
       margin-bottom: 20px;
     }
@@ -869,6 +870,36 @@
     .recharge-confirm:hover { opacity: 0.88; }
     .recharge-confirm:disabled { background: #ddd; color: #aaa; cursor: not-allowed; }
 
+    /* ===== AI介绍语编辑弹窗 ===== */
+    .tagline-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 500;
+    }
+    .tagline-modal {
+      background: #fff; border-radius: 14px; width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2); overflow: hidden;
+    }
+    .tagline-modal textarea {
+      width: 100%; height: 100px;
+      padding: 10px 12px; font-size: 14px; font-family: inherit;
+      border: 1px solid #e0e0e0; border-radius: 8px;
+      resize: vertical; box-sizing: border-box; outline: none;
+    }
+    .tagline-modal textarea:focus { border-color: #e0c97f; }
+    .tagline-hint { font-size: 12px; color: #aaa; margin-top: 6px; }
+    .tagline-err  { font-size: 12px; color: #e05c5c; margin-top: 6px; min-height: 18px; }
+    .tagline-confirm {
+      display: block; width: 100%; margin-top: 16px; padding: 10px 0;
+      border: none; border-radius: 8px;
+      background: linear-gradient(135deg, #e0c97f, #c9a227);
+      color: #1a1a2e; font-size: 14px; font-weight: bold;
+      font-family: inherit; cursor: pointer; transition: opacity 0.15s;
+    }
+    .tagline-confirm:hover { opacity: 0.88; }
+    .tagline-confirm:disabled { background: #ddd; color: #aaa; cursor: not-allowed; }
+
     .tbl-del-btn {
       background: #fff0f0;
       color: #e05c5c;
@@ -898,19 +929,22 @@
       <a class="nav-item active" href="index.html" style="color:inherit;text-decoration:none;">
         <span class="icon">🏠</span> 首页
       </a>
-      <a class="nav-item" href="#" style="color:inherit;text-decoration:none;">
-        <span class="icon">🪭</span> 产品目录
-      </a>
-      <a class="nav-item" href="customize.html" style="color:inherit;text-decoration:none;">
-        <span class="icon">✏️</span> 在线定制
-      </a>
       <a class="nav-item" href="templates.html" style="color:inherit;text-decoration:none;">
         <span class="icon">🎨</span> 设计模板
+      </a>
+      <a class="nav-item" href="fan-batch-color.html" style="color:inherit;text-decoration:none;">
+        <span class="icon">🖌️</span> 像素染色
+      </a>
+      <a class="nav-item" href="materials.html" style="color:inherit;text-decoration:none;">
+        <span class="icon">🗂️</span> 材料仓库
       </a>
 
       <div class="nav-section-title">设置</div>
       <a class="nav-item" href="#" style="color:inherit;text-decoration:none;">
         <span class="icon">⚙️</span> 系统设置
+      </a>
+      <a class="nav-item" href="#" style="color:inherit;text-decoration:none;" onclick="openTaglineModal();return false;">
+        <span class="icon">✏️</span> AI助手介绍语
       </a>
       <a class="nav-item" href="#" style="color:inherit;text-decoration:none;">
         <span class="icon">👤</span> 账号管理
@@ -981,54 +1015,7 @@
         <div class="form-row">
           <div class="form-item">
             <label>用户名称</label>
-            <input type="text" id="f-username" placeholder="请输入您的名称" />
-          </div>
-          <div class="form-item">
-            <label>规格</label>
-            <select id="f-specs">
-              <option value="">请选择规格</option>
-              <option value="折扇（标准 33cm）">折扇（标准 33cm）</option>
-              <option value="折扇（加大 40cm）">折扇（加大 40cm）</option>
-              <option value="圆扇（直径 25cm）">圆扇（直径 25cm）</option>
-              <option value="圆扇（直径 30cm）">圆扇（直径 30cm）</option>
-              <option value="竹扇（标准款）">竹扇（标准款）</option>
-            </select>
-          </div>
-          <div class="form-item">
-            <label>行业</label>
-            <select id="f-industry">
-              <option value="">请选择行业</option>
-              <option value="餐饮">餐饮</option>
-              <option value="零售">零售</option>
-              <option value="文化教育">文化教育</option>
-              <option value="政务">政务</option>
-              <option value="旅游">旅游</option>
-              <option value="婚庆">婚庆</option>
-              <option value="医疗健康">医疗健康</option>
-              <option value="其他">其他</option>
-            </select>
-          </div>
-          <div class="form-item">
-            <label>风格</label>
-            <select id="f-style">
-              <option value="">请选择风格</option>
-              <option value="简约现代">简约现代</option>
-              <option value="中国风">中国风</option>
-              <option value="商务正式">商务正式</option>
-              <option value="活泼趣味">活泼趣味</option>
-              <option value="自然清新">自然清新</option>
-            </select>
-          </div>
-          <div class="form-item">
-            <label>模版</label>
-            <select id="f-template">
-              <option value="">请选择模版</option>
-              <option value="经典款 A">经典款 A</option>
-              <option value="经典款 B">经典款 B</option>
-              <option value="节日款">节日款</option>
-              <option value="企业定制款">企业定制款</option>
-              <option value="全自定义">全自定义</option>
-            </select>
+            <input type="text" id="f-username" placeholder="请输入用户名称" />
           </div>
         </div>
 
@@ -1100,6 +1087,22 @@
     </div>
   </div>
 
+  <!-- AI介绍语编辑弹窗 -->
+  <div class="tagline-overlay" id="taglineOverlay" style="display:none;" onclick="if(event.target===this)closeTaglineModal()">
+    <div class="tagline-modal" onclick="event.stopPropagation()">
+      <div class="recharge-header">
+        <div class="recharge-header-title">✏️ 修改 AI 助手介绍语</div>
+        <button class="recharge-close" onclick="closeTaglineModal()">✕</button>
+      </div>
+      <div class="recharge-body" style="padding-bottom:22px;">
+        <textarea id="taglineInput" placeholder="请输入介绍语，换行用回车"></textarea>
+        <div class="tagline-hint">换行会在 AI 页面自动换行显示</div>
+        <div class="tagline-err" id="taglineErr"></div>
+        <button class="tagline-confirm" id="taglineConfirmBtn" onclick="saveTagline()">保存</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 充值弹窗 -->
   <div class="recharge-overlay" id="rechargeOverlay" style="display:none;" onclick="handleOverlayClick(event)">
     <div class="recharge-modal" onclick="event.stopPropagation()">
@@ -1141,7 +1144,7 @@
   </div>
 
   <script>
-    const API = 'http://localhost:5000';
+    const API = 'http://network.ipyingshe.net';
 
     // 未登录则跳转
     const token = localStorage.getItem('token');
@@ -1284,10 +1287,6 @@
         return `
         <tr>
           <td>${r.username}</td>
-          <td>${r.specs}</td>
-          <td>${r.industry}</td>
-          <td>${r.style}</td>
-          <td>${r.template}</td>
           <td style="color:#aaa;font-size:12px;">${fmtDate(r.createdAt)}</td>
           <td class="record-link-cell"><a class="record-link" href="${r.link}" target="_blank">${r.link}</a></td>
           ${quotaTd}
@@ -1303,10 +1302,6 @@
           <thead>
             <tr>
               <th>用户名称</th>
-              <th>规格</th>
-              <th>行业</th>
-              <th>风格</th>
-              <th>模版</th>
               <th>生成时间</th>
               <th>咨询链接</th>
               <th>剩余额度</th>
@@ -1458,10 +1453,6 @@
 
     async function generateAiLink() {
       const username   = document.getElementById('f-username').value.trim();
-      const specs      = document.getElementById('f-specs').value;
-      const industry   = document.getElementById('f-industry').value;
-      const style      = document.getElementById('f-style').value;
-      const tmpl       = document.getElementById('f-template').value;
       const limitType  = currentLimitMode;
       const limitValue = parseInt(
         limitType === 'time'
@@ -1471,8 +1462,8 @@
       const errEl = document.getElementById('genErr');
 
       errEl.textContent = '';
-      if (!username || !specs || !industry || !style || !tmpl) {
-        errEl.textContent = '请填写用户名称并选择全部选项后再生成';
+      if (!username) {
+        errEl.textContent = '请填写用户名称';
         return;
       }
 
@@ -1487,7 +1478,7 @@
             'Content-Type':  'application/json',
             'Authorization': 'Bearer ' + token,
           },
-          body: JSON.stringify({ username, specs, industry, style, template: tmpl, limitType, limitValue }),
+          body: JSON.stringify({ username, limitType, limitValue }),
         });
 
         if (res.status === 401) { location.href = 'login.html'; return; }
@@ -1510,7 +1501,7 @@
         // 规格摘要标签
         const limitLabel = data.limitType === 'count' ? `${limitValue} 次` : `${limitValue} 分钟`;
         document.getElementById('specSummary').innerHTML =
-          [['用户', username], ['规格', specs], ['行业', industry], ['风格', style], ['模版', tmpl], ['限制', limitLabel]]
+          [['用户', username], ['限制', limitLabel]]
           .map(([k, v]) => `<div class="spec-chip"><em>${k}：</em>${v}</div>`)
           .join('');
 
@@ -1548,6 +1539,46 @@
         btn.textContent = '已复制';
         setTimeout(() => { btn.textContent = '复制链接'; }, 1500);
       });
+    }
+
+    // ===== AI 介绍语编辑 =====
+    async function openTaglineModal() {
+      document.getElementById('taglineErr').textContent = '';
+      document.getElementById('taglineInput').value = '';
+      document.getElementById('taglineOverlay').style.display = 'flex';
+      try {
+        const res  = await fetch(`${API}/api/settings/ai-tagline`);
+        const data = await res.json();
+        if (data.tagline) document.getElementById('taglineInput').value = data.tagline;
+      } catch { /* 加载失败不阻断 */ }
+      document.getElementById('taglineInput').focus();
+    }
+
+    function closeTaglineModal() {
+      document.getElementById('taglineOverlay').style.display = 'none';
+    }
+
+    async function saveTagline() {
+      const tagline = document.getElementById('taglineInput').value.trim();
+      const errEl   = document.getElementById('taglineErr');
+      const btn     = document.getElementById('taglineConfirmBtn');
+      errEl.textContent = '';
+      if (!tagline) { errEl.textContent = '内容不能为空'; return; }
+      btn.disabled = true; btn.textContent = '保存中…';
+      try {
+        const res = await fetch(`${API}/api/settings/ai-tagline`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body:    JSON.stringify({ tagline }),
+        });
+        const data = await res.json();
+        if (!res.ok) { errEl.textContent = data.message || '保存失败'; return; }
+        closeTaglineModal();
+      } catch {
+        errEl.textContent = '网络错误，请稍后重试';
+      } finally {
+        btn.disabled = false; btn.textContent = '保存';
+      }
     }
   </script>
 </body>

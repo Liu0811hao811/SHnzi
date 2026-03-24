@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>材料仓库 — 广告扇子定制平台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Microsoft YaHei", sans-serif;
+      background: #f5f6fa;
+      color: #333;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ===== 左侧功能栏 ===== */
+    .sidebar {
+      width: 220px;
+      background: #1a1a2e;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100vh;
+    }
+    .sidebar-logo {
+      padding: 28px 20px 20px;
+      font-size: 18px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      border-bottom: 1px solid #2a2a4a;
+      color: #e0c97f;
+    }
+    .sidebar-logo span {
+      font-size: 12px; color: #aaa; display: block;
+      font-weight: normal; letter-spacing: 1px; margin-top: 4px;
+    }
+    .sidebar nav { flex: 1; padding: 16px 0; }
+    .nav-section-title {
+      font-size: 11px; color: #888; letter-spacing: 1px;
+      padding: 12px 20px 6px; text-transform: uppercase;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 20px; cursor: pointer; transition: background 0.2s;
+      font-size: 14px; border-left: 3px solid transparent;
+      color: inherit; text-decoration: none;
+    }
+    .nav-item:hover { background: #2a2a4a; }
+    .nav-item.active { background: #16213e; border-left-color: #e0c97f; color: #e0c97f; }
+    .nav-item .icon { font-size: 18px; width: 22px; text-align: center; }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid #2a2a4a; font-size: 12px; color: #888; }
+
+    /* ===== 主区域 ===== */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    .topbar {
+      background: #fff; padding: 0 32px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid #e8e8e8; flex-shrink: 0;
+    }
+    .topbar-title { font-size: 18px; font-weight: bold; color: #1a1a2e; }
+    .topbar-actions { display: flex; gap: 12px; align-items: center; }
+    .btn {
+      padding: 8px 20px; border-radius: 6px; border: none;
+      cursor: pointer; font-size: 14px; font-family: inherit; transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: #e0c97f; color: #1a1a2e; font-weight: bold; }
+    .btn-outline { background: transparent; border: 1px solid #ddd; color: #555; }
+
+    .content { flex: 1; overflow-y: auto; padding: 28px 32px; }
+
+    /* ===== 工具栏 ===== */
+    .toolbar {
+      background: #fff; border-radius: 12px;
+      padding: 20px 24px; margin-bottom: 20px;
+      border: 1px solid #f0f0f0;
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .upload-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, #e0c97f, #c9a227);
+      color: #1a1a2e; font-weight: bold; font-size: 14px;
+      padding: 10px 22px; border-radius: 8px; border: none;
+      cursor: pointer; font-family: inherit; transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+    .upload-btn:hover { opacity: 0.88; }
+    .upload-btn input[type="file"] { display: none; }
+
+    .search-box {
+      flex: 1; min-width: 160px; max-width: 280px;
+      padding: 9px 14px; border: 1px solid #e0e0e0; border-radius: 8px;
+      font-size: 13px; font-family: inherit; outline: none;
+      background: #fafafa; transition: border-color 0.2s;
+    }
+    .search-box:focus { border-color: #e0c97f; }
+
+    /* 分类标签 */
+    .cat-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+    .cat-tab {
+      padding: 6px 16px; border-radius: 20px; border: 1px solid #e0e0e0;
+      background: #fafafa; font-size: 13px; font-family: inherit;
+      cursor: pointer; color: #666; transition: all 0.15s;
+    }
+    .cat-tab:hover { border-color: #e0c97f; color: #1a1a2e; }
+    .cat-tab.active { background: #1a1a2e; color: #e0c97f; border-color: #1a1a2e; font-weight: bold; }
+
+    .toolbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .count-badge {
+      font-size: 12px; color: #888;
+      background: #f0f0f0; padding: 4px 12px; border-radius: 20px;
+    }
+
+    /* 上传进度条 */
+    .upload-progress {
+      width: 100%; background: #f0f0f0; border-radius: 4px;
+      height: 6px; overflow: hidden; display: none;
+    }
+    .upload-progress-bar {
+      height: 100%; background: linear-gradient(90deg, #e0c97f, #c9a227);
+      border-radius: 4px; transition: width 0.3s;
+    }
+
+    /* ===== 素材网格 ===== */
+    .materials-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+    }
+
+    .mat-card {
+      background: #fff; border-radius: 10px; overflow: hidden;
+      border: 1px solid #f0f0f0; transition: box-shadow 0.2s, transform 0.2s;
+      display: flex; flex-direction: column;
+    }
+    .mat-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.1); transform: translateY(-2px); }
+
+    .mat-thumb {
+      height: 140px; background: #f8f8f8; position: relative;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; cursor: pointer;
+    }
+    .mat-thumb img {
+      max-width: 100%; max-height: 100%; object-fit: contain;
+      transition: transform 0.2s;
+    }
+    .mat-thumb:hover img { transform: scale(1.05); }
+    .mat-thumb-overlay {
+      position: absolute; inset: 0; background: rgba(26,26,46,0.55);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .mat-thumb:hover .mat-thumb-overlay { opacity: 1; }
+    .preview-btn {
+      color: #fff; font-size: 13px; background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.4); border-radius: 6px;
+      padding: 6px 14px; cursor: pointer; font-family: inherit;
+    }
+
+    .mat-info { padding: 12px 12px 8px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+
+    .mat-name {
+      font-size: 13px; font-weight: bold; color: #1a1a2e;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      cursor: pointer;
+    }
+    .mat-name:hover { color: #c9a227; }
+    .mat-name-input {
+      font-size: 13px; font-weight: bold; color: #1a1a2e;
+      border: 1px solid #e0c97f; border-radius: 4px;
+      padding: 2px 6px; font-family: inherit; outline: none; width: 100%;
+      display: none;
+    }
+
+    .mat-meta { font-size: 11px; color: #aaa; display: flex; gap: 8px; }
+
+    .cat-chip {
+      font-size: 11px; padding: 2px 8px; border-radius: 10px;
+      font-weight: bold; display: inline-block;
+    }
+    .cat-chip.logo品牌  { background: #fff3e0; color: #e65100; }
+    .cat-chip.产品图    { background: #e3f2fd; color: #1565c0; }
+    .cat-chip.背景      { background: #e8f5e9; color: #2e7d32; }
+    .cat-chip.其他      { background: #f3e5f5; color: #6a1b9a; }
+    .cat-chip.订单提交  { background: #fce4ec; color: #c62828; }
+
+    /* 订单信息块 */
+    .order-info-block {
+      background: #fff8f0; border: 1px solid #ffe0b2; border-radius: 6px;
+      padding: 6px 8px; margin-top: 4px; font-size: 11px; color: #555;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .order-info-row { display: flex; gap: 4px; align-items: center; }
+    .order-info-label { color: #999; white-space: nowrap; }
+
+    .mat-actions { padding: 8px 12px 12px; display: flex; gap: 6px; }
+    .mat-btn {
+      flex: 1; padding: 6px 0; border-radius: 6px; border: 1px solid #e0e0e0;
+      background: #fafafa; font-size: 12px; font-family: inherit;
+      cursor: pointer; color: #555; transition: all 0.15s; text-align: center;
+    }
+    .mat-btn:hover { border-color: #e0c97f; color: #1a1a2e; background: #fffbee; }
+    .mat-btn.dl { background: #f0faf8; color: #0f6460; border-color: #b2dfdb; }
+    .mat-btn.dl:hover { background: #0f6460; color: #fff; border-color: #0f6460; }
+    .mat-btn.del { background: #fff0f0; color: #e05c5c; border-color: #f5c0c0; }
+    .mat-btn.del:hover { background: #e05c5c; color: #fff; border-color: #e05c5c; }
+
+    /* ===== 空状态 ===== */
+    .empty-state {
+      text-align: center; padding: 80px 0; color: #bbb;
+      grid-column: 1 / -1;
+    }
+    .empty-state .empty-icon { font-size: 56px; margin-bottom: 16px; }
+    .empty-state p { font-size: 15px; margin-bottom: 8px; color: #999; }
+    .empty-state small { font-size: 12px; }
+
+    /* ===== 图片预览弹窗 ===== */
+    .preview-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 600; cursor: zoom-out;
+    }
+    .preview-overlay img {
+      max-width: 90vw; max-height: 85vh; border-radius: 8px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5); cursor: default;
+    }
+    .preview-close {
+      position: absolute; top: 20px; right: 28px;
+      color: #fff; font-size: 28px; cursor: pointer; line-height: 1;
+      background: rgba(255,255,255,0.1); border: none; border-radius: 50%;
+      width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+    }
+    .preview-close:hover { background: rgba(255,255,255,0.25); }
+
+    /* ===== 编辑分类下拉 ===== */
+    .cat-select {
+      font-size: 11px; border: 1px solid #e0e0e0; border-radius: 6px;
+      padding: 3px 6px; font-family: inherit; background: #fafafa;
+      color: #555; cursor: pointer; outline: none;
+    }
+    .cat-select:focus { border-color: #e0c97f; }
+
+    /* Toast 提示 */
+    .toast {
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+      background: #1a1a2e; color: #e0c97f; padding: 10px 24px;
+      border-radius: 8px; font-size: 13px; z-index: 999;
+      opacity: 0; transition: opacity 0.3s; pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+
+    /* 拖拽上传区域高亮 */
+    .content.drag-over .toolbar {
+      border: 2px dashed #e0c97f;
+      background: #fffbee;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 左侧功能栏 -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      扇艺广告
+      <span>广告扇子定制平台</span>
+    </div>
+    <nav>
+      <div class="nav-section-title">主菜单</div>
+      <a class="nav-item" href="index.html" style="color:inherit;text-decoration:none;">
+        <span class="icon">🏠</span> 首页
+      </a>
+      <a class="nav-item" href="templates.html" style="color:inherit;text-decoration:none;">
+        <span class="icon">🎨</span> 设计模板
+      </a>
+      <a class="nav-item" href="fan-batch-color.html" style="color:inherit;text-decoration:none;">
+        <span class="icon">🖌️</span> 像素染色
+      </a>
+      <a class="nav-item active" href="materials.html" style="color:inherit;text-decoration:none;">
+        <span class="icon">🗂️</span> 材料仓库
+      </a>
+      <div class="nav-section-title">设置</div>
+      <a class="nav-item" href="#" style="color:inherit;text-decoration:none;">
+        <span class="icon">⚙️</span> 系统设置
+      </a>
+      <a class="nav-item" href="#" style="color:inherit;text-decoration:none;">
+        <span class="icon">👤</span> 账号管理
+      </a>
+    </nav>
+    <div class="sidebar-footer">© 2026 扇艺广告</div>
+  </aside>
+
+  <!-- 主内容区 -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-title">材料仓库</div>
+      <div class="topbar-actions">
+        <span id="userLabel" style="font-size:13px;color:#888;"></span>
+        <button class="btn btn-outline" id="logoutBtn">退出</button>
+      </div>
+    </header>
+
+    <div class="content" id="mainContent">
+
+      <!-- 工具栏 -->
+      <div class="toolbar">
+        <!-- 上传按钮 -->
+        <label class="upload-btn">
+          <span>📤 上传素材</span>
+          <input type="file" id="fileInput" accept="image/*" multiple />
+        </label>
+
+        <!-- 分类选择（上传时用） -->
+        <select id="uploadCategory" class="cat-select" style="font-size:13px;padding:9px 12px;border-radius:8px;">
+          <option value="其他">分类：其他</option>
+          <option value="logo品牌">分类：logo品牌</option>
+          <option value="产品图">分类：产品图</option>
+          <option value="背景">分类：背景</option>
+        </select>
+
+        <!-- 搜索 -->
+        <input type="text" class="search-box" id="searchBox" placeholder="🔍 搜索素材名称…" oninput="filterAndRender()" />
+
+        <!-- 分类筛选 -->
+        <div class="cat-tabs">
+          <button class="cat-tab active" data-cat="全部" onclick="switchCat(this)">全部</button>
+          <button class="cat-tab" data-cat="订单提交" onclick="switchCat(this)">📋 订单提交</button>
+          <button class="cat-tab" data-cat="logo品牌" onclick="switchCat(this)">logo品牌</button>
+          <button class="cat-tab" data-cat="产品图" onclick="switchCat(this)">产品图</button>
+          <button class="cat-tab" data-cat="背景" onclick="switchCat(this)">背景</button>
+          <button class="cat-tab" data-cat="其他" onclick="switchCat(this)">其他</button>
+        </div>
+
+        <div class="toolbar-right">
+          <span class="count-badge" id="countBadge">共 0 个素材</span>
+        </div>
+
+        <!-- 上传进度 -->
+        <div class="upload-progress" id="uploadProgress" style="width:100%;">
+          <div class="upload-progress-bar" id="uploadBar" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- 素材网格 -->
+      <div class="materials-grid" id="grid">
+        <div class="empty-state">
+          <div class="empty-icon">🗂️</div>
+          <p>仓库为空</p>
+          <small>点击「上传素材」或将图片拖入此区域</small>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 图片预览弹窗 -->
+  <div class="preview-overlay" id="previewOverlay" style="display:none;" onclick="closePreview()">
+    <button class="preview-close" onclick="closePreview()">✕</button>
+    <img id="previewImg" src="" alt="预览" onclick="event.stopPropagation()" />
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+const API = 'http://network.ipyingshe.net';
+    const token = localStorage.getItem('token');
+    if (!token) { location.href = 'login.html'; }
+
+    const currentUser = localStorage.getItem('currentUser');
+    if (currentUser) document.getElementById('userLabel').textContent = '你好，' + currentUser;
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('currentUser');
+      location.href = 'login.html';
+    });
+
+    // ───── 全局数据 ─────
+    let allMaterials = [];
+    let currentCat   = '全部';
+
+    // ───── Toast ─────
+    let toastTimer;
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    // ───── 加载素材 ─────
+    async function loadMaterials() {
+      try {
+        const res  = await fetch(`${API}/api/materials`, {
+          headers: { 'Authorization': 'Bearer ' + token },
+        });
+        if (res.status === 401) { location.href = 'login.html'; return; }
+        allMaterials = await res.json();
+        filterAndRender();
+      } catch {
+        showToast('加载失败，请检查后端连接');
+      }
+    }
+
+    // ───── 分类切换 ─────
+    function switchCat(btn) {
+      document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentCat = btn.dataset.cat;
+      filterAndRender();
+    }
+
+    // ───── 过滤 + 渲染 ─────
+    function filterAndRender() {
+      const kw = document.getElementById('searchBox').value.trim().toLowerCase();
+      let list  = allMaterials;
+
+      if (currentCat !== '全部') list = list.filter(m => m.category === currentCat);
+      if (kw) list = list.filter(m => m.originalName.toLowerCase().includes(kw));
+
+      document.getElementById('countBadge').textContent = `共 ${list.length} 个素材`;
+      renderGrid(list);
+    }
+
+    function fmtSize(bytes) {
+      if (bytes < 1024)       return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+    function fmtDate(iso) {
+      const d = new Date(iso);
+      return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    }
+
+    function renderGrid(list) {
+      const grid = document.getElementById('grid');
+      if (list.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">🗂️</div>
+            <p>${currentCat === '全部' ? '仓库为空' : `「${currentCat}」分类暂无素材`}</p>
+            <small>${currentCat === '全部' ? '点击「上传素材」或将图片拖入此区域' : '请切换分类或上传新素材'}</small>
+          </div>`;
+        return;
+      }
+
+      grid.innerHTML = list.map(m => {
+        const isOrder = m.category === '订单提交';
+        const orderBlock = isOrder && m.orderInfo ? `
+          <div class="order-info-block">
+            <div class="order-info-row"><span class="order-info-label">规格：</span><strong>${escHtml(m.orderInfo.specs)}</strong></div>
+            <div class="order-info-row"><span class="order-info-label">数量：</span><strong>${m.orderInfo.quantity} 把</strong></div>
+            <div class="order-info-row"><span class="order-info-label">订单号：</span><span style="word-break:break-all;">${escHtml(m.orderInfo.orderNumber)}</span></div>
+          </div>` : '';
+        const catSelectHtml = isOrder ? '' : `
+          <select class="cat-select" onchange="updateCategory('${m.id}', this.value)">
+            ${['logo品牌','产品图','背景','其他'].map(c =>
+              `<option value="${c}"${c===m.category?' selected':''}>${c}</option>`
+            ).join('')}
+          </select>`;
+        return `
+        <div class="mat-card" data-id="${m.id}">
+          <div class="mat-thumb" onclick="openPreview('${m.url}')">
+            <img src="${m.url}" alt="${escHtml(m.originalName)}" loading="lazy" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22 viewBox=%220 0 80 80%22%3E%3Crect fill=%22%23f0f0f0%22 width=%2280%22 height=%2280%22/%3E%3Ctext x=%2240%22 y=%2244%22 font-size=%2224%22 text-anchor=%22middle%22 fill=%22%23bbb%22%3E?%3C/text%3E%3C/svg%3E'" />
+            <div class="mat-thumb-overlay">
+              <button class="preview-btn" onclick="event.stopPropagation();openPreview('${m.url}')">查看大图</button>
+            </div>
+          </div>
+          <div class="mat-info">
+            <div class="mat-name" title="${escHtml(m.originalName)}" ondblclick="startRename(this, '${m.id}')">${escHtml(m.originalName)}</div>
+            <input class="mat-name-input" data-id="${m.id}" onblur="commitRename(this)" onkeydown="nameKeydown(event, this)" />
+            <div class="mat-meta">
+              <span class="cat-chip ${m.category}">${m.category}</span>
+              ${m.size ? `<span>${fmtSize(m.size)}</span>` : ''}
+              <span>${fmtDate(m.createdAt)}</span>
+            </div>
+            ${orderBlock}
+            ${catSelectHtml}
+          </div>
+          <div class="mat-actions">
+            <button class="mat-btn dl" onclick="downloadMaterial('${m.url}', ${m.cdrUrl ? `'${m.cdrUrl}'` : 'null'})">${m.cdrUrl ? '⬇ 下载 CDR' : '⬇ 下载图片'}</button>
+            <button class="mat-btn del" onclick="deleteMaterial('${m.id}')">删除</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ───── 预览 ─────
+    function openPreview(url) {
+      document.getElementById('previewImg').src = url;
+      document.getElementById('previewOverlay').style.display = 'flex';
+    }
+    function closePreview() {
+      document.getElementById('previewOverlay').style.display = 'none';
+      document.getElementById('previewImg').src = '';
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closePreview(); });
+
+    // ───── 上传 ─────
+    document.getElementById('fileInput').addEventListener('change', async function () {
+      const files    = Array.from(this.files);
+      const category = document.getElementById('uploadCategory').value;
+      if (!files.length) return;
+      await uploadFiles(files, category);
+      this.value = '';
+    });
+
+    async function uploadFiles(files, category) {
+      const progress = document.getElementById('uploadProgress');
+      const bar      = document.getElementById('uploadBar');
+      progress.style.display = 'block';
+      bar.style.width = '10%';
+
+      const fd = new FormData();
+      files.forEach(f => fd.append('files', f));
+      fd.append('category', category);
+
+      try {
+        bar.style.width = '40%';
+        const res = await fetch(`${API}/api/materials/upload`, {
+          method:  'POST',
+          headers: { 'Authorization': 'Bearer ' + token },
+          body: fd,
+        });
+        bar.style.width = '80%';
+        if (res.status === 401) { location.href = 'login.html'; return; }
+        const data = await res.json();
+        if (!res.ok) { showToast(data.message || '上传失败'); return; }
+        bar.style.width = '100%';
+        showToast(`✓ 上传成功 ${data.items.length} 个素材`);
+        await loadMaterials();
+      } catch {
+        showToast('上传失败，请检查网络');
+      } finally {
+        setTimeout(() => { progress.style.display = 'none'; bar.style.width = '0%'; }, 600);
+      }
+    }
+
+    // ───── 拖拽上传 ─────
+    const mainContent = document.getElementById('mainContent');
+    mainContent.addEventListener('dragover', e => { e.preventDefault(); mainContent.classList.add('drag-over'); });
+    mainContent.addEventListener('dragleave', e => { if (!mainContent.contains(e.relatedTarget)) mainContent.classList.remove('drag-over'); });
+    mainContent.addEventListener('drop', async e => {
+      e.preventDefault();
+      mainContent.classList.remove('drag-over');
+      const files    = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+      const category = document.getElementById('uploadCategory').value;
+      if (!files.length) { showToast('请拖入图片文件'); return; }
+      await uploadFiles(files, category);
+    });
+
+    // ───��─ 复制链接 ─────
+    async function downloadMaterial(pngUrl, cdrUrl) {
+      const dlUrl  = cdrUrl || pngUrl;
+      const dlName = cdrUrl
+        ? dlUrl.split('/').pop().replace('.pdf', '.cdr')
+        : dlUrl.split('/').pop();
+      try {
+        const res  = await fetch(dlUrl, { mode: 'cors' });
+        const blob = await res.blob();
+        const a    = document.createElement('a');
+        a.href     = URL.createObjectURL(blob);
+        a.download = dlName;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+      } catch {
+        window.open(dlUrl, '_blank');
+      }
+    }
+
+    // ───── 删除 ─────
+    async function deleteMaterial(id) {
+      try {
+        const res = await fetch(`${API}/api/materials/${id}`, {
+          method:  'DELETE',
+          headers: { 'Authorization': 'Bearer ' + token },
+        });
+        if (res.status === 401) { location.href = 'login.html'; return; }
+        if (!res.ok) { const d = await res.json(); showToast(d.message || '删除失败'); return; }
+        showToast('已删除');
+        allMaterials = allMaterials.filter(m => String(m.id) !== String(id));
+        filterAndRender();
+      } catch {
+        showToast('删除失败，请检查网络');
+      }
+    }
+
+    // ───── 重命名（双击名称） ─────
+    function startRename(nameEl, id) {
+      const input = nameEl.nextElementSibling;
+      input.value = nameEl.textContent;
+      nameEl.style.display  = 'none';
+      input.style.display   = 'block';
+      input.focus();
+      input.select();
+    }
+    function nameKeydown(e, input) {
+      if (e.key === 'Enter')  { e.preventDefault(); input.blur(); }
+      if (e.key === 'Escape') {
+        const nameEl = input.previousElementSibling;
+        nameEl.style.display = '';
+        input.style.display  = 'none';
+      }
+    }
+    async function commitRename(input) {
+      const id     = input.dataset.id;
+      const nameEl = input.previousElementSibling;
+      const name   = input.value.trim();
+      input.style.display = 'none';
+      nameEl.style.display = '';
+      if (!name || name === nameEl.textContent) return;
+
+      try {
+        const res = await fetch(`${API}/api/materials/${id}`, {
+          method:  'PATCH',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ originalName: name }),
+        });
+        if (!res.ok) { showToast('重命名失败'); return; }
+        nameEl.textContent = name;
+        nameEl.title       = name;
+        const item = allMaterials.find(m => String(m.id) === id);
+        if (item) item.originalName = name;
+        showToast('✓ 已重命名');
+      } catch {
+        showToast('重命名失败');
+      }
+    }
+
+    // ───── 修改分类 ─────
+    async function updateCategory(id, category) {
+      try {
+        const res = await fetch(`${API}/api/materials/${id}`, {
+          method:  'PATCH',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ category }),
+        });
+        if (!res.ok) { showToast('修改分类失败'); return; }
+        const item = allMaterials.find(m => String(m.id) === id);
+        if (item) item.category = category;
+        // 更新卡片上的分类标签
+        const card = document.querySelector(`.mat-card[data-id="${id}"]`);
+        if (card) {
+          const chip = card.querySelector('.cat-chip');
+          if (chip) { chip.textContent = category; chip.className = `cat-chip ${category}`; }
+        }
+        showToast('✓ 分类已更新');
+        if (currentCat !== '全部') filterAndRender();
+      } catch {
+        showToast('修改分类失败');
+      }
+    }
+
+    // ───── 初始化 ─────
+    loadMaterials();
+  </script>
+</body>
+</html>

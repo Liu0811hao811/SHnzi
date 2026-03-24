@@ -13,6 +13,8 @@ const Jimp    = require('jimp');
 const path    = require('path');
 const fs      = require('fs');
 const { overlayMerchantText, hasContent } = require('./textOverlay');
+const { PDFDocument } = require('pdf-lib');
+const { createCanvas, loadImage } = require('@napi-rs/canvas');
 
 // ─────────────────────────────────────────────────────────────────────
 // 配置
@@ -25,24 +27,24 @@ const UPLOADS_DIR = path.join(__dirname, '../uploads');
 // ─────────────────────────────────────────────────────────────────────
 // 图片风格配置
 // ─────────────────────────────────────────────────────────────────────
-const BASE_NEGATIVE = '文字，汉字，文本，标题，字幕，广告语，排版，文案，中文字，英文字，数字，数字标注，书法，题字，刻字，印刷字，signs，signage，labels，inscriptions，handwriting，calligraphy，digits，numbers，Chinese characters，English characters，printed text，text overlay，typography，lettering，caption，subtitle，headline，font，words，letters，乱码，无意义汉字，随机汉字，错误文字，模糊文字，杂乱符号，水印，签名，版权，watermark，logo with text，blurry，low quality，ugly';
+const BASE_NEGATIVE = '文字，水印，字幕，标题，logo文字，text，watermark，blurry，low quality，ugly，oversaturated，deformed，extra limbs';
 
 const STYLE_MAP = {
   photo: {
-    promptSuffix: '，真实摄影风格，高清照片，商业摄影，专业布光，写实，超细节，8K',
-    negativeAdd:  '，动漫，卡通，插画，二次元，anime，cartoon，illustration，comic，3D渲染',
+    promptSuffix: '，专业商业摄影，精致自然光影，超高清锐利细节，景深层次丰富，色彩真实通透，8K',
+    negativeAdd:  '，动漫，卡通，插画，anime，cartoon，过度锐化，HDR过曝',
   },
   illustration: {
-    promptSuffix: '，精美插画，平面设计风格，色彩丰富，商业插画，高饱和度',
-    negativeAdd:  '',
+    promptSuffix: '，精美商业插画，细腻笔触，色彩层次丰富，光影立体，高品质平面设计感',
+    negativeAdd:  '，模糊，粗糙，低质量',
   },
   chinese: {
-    promptSuffix: '，中国水墨风格，国画，写意，古典意境，丹青，工笔',
-    negativeAdd:  '，动漫，卡通，anime，cartoon，写实照片',
+    promptSuffix: '，中国传统工笔画，晕染层次细腻，古典意境深远，笔墨精到，构图典雅',
+    negativeAdd:  '，动漫，卡通，anime，cartoon，写实照片，现代风格',
   },
   business: {
-    promptSuffix: '，简约商务风格，现代设计感，干净背景，专业大气，极简',
-    negativeAdd:  '，动漫，卡通，插画，复杂背景，anime，cartoon',
+    promptSuffix: '，现代简约商务风，干净利落，专业质感，高端大气，视觉层次清晰，留白恰当',
+    negativeAdd:  '，动漫，卡通，复杂杂乱背景，anime，cartoon',
   },
 };
 
@@ -163,7 +165,7 @@ async function volcT2I(prompt, width = 1024, height = 1024, genStyle = '') {
     throw new Error('未配置火山引擎密钥，请检查 backend/.env 中的 VOLC_AK / VOLC_SK');
   }
   const style          = STYLE_MAP[genStyle] || {};
-  const fullPrompt     = '无文字，no text，no letters，no words，' + prompt.trim() + (style.promptSuffix || '') + '，纯净画面，无任何文字水印';
+  const fullPrompt     = prompt.trim() + (style.promptSuffix || '') + '，无文字，无水印';
   const negativePrompt = BASE_NEGATIVE + (style.negativeAdd  || '');
 
   const { httpStatus, data } = await volcRequest({
@@ -176,7 +178,7 @@ async function volcT2I(prompt, width = 1024, height = 1024, genStyle = '') {
       req_key:         REQ_KEY,
       prompt:          fullPrompt,
       negative_prompt: negativePrompt,
-      cfg_scale:       9,
+      cfg_scale:       7,
       width, height,
       use_sr:     true,
       return_url: true,
@@ -316,13 +318,16 @@ async function findFanBoundingBox(tplBuf) {
 
 /**
  * 合成最终图
- *  步骤 1：AI 图 cover 到扇面包围盒，替换「扇面主体」连通分量像素（排除扇钉等小区域）
+ *  步骤 1：AI 图 cover 到扇面包围��，替换「扇面主体」连通分量像素（排除扇钉等小区域）
  *  步骤 2：扫描原始模板，将非扇面主体的 #111111 像素在输出中设为透明
  *          （背景 + 扇钉等小封闭区域 → 透明；扇面像素已被 AI 内容替换 → 不触碰）
  *  结果：透明背景，AI 内容填充不规则扇面，扇骨/边框保留，扇钉区域透明
+ *
+ *  注意：此函数在全分辨率下做 BFS + 连通分量分析，彻底消除 1/4 缩放导致的
+ *        边界误判（圆形扇面右侧/边缘留白问题）。
  */
 async function compositeResult(templateBuf, resultBuf, bbox) {
-  const { minX, minY, maxX, maxY, bg, compId, fanCidSet, smallW, smallH, scale } = bbox;
+  const { minX, minY, maxX, maxY } = bbox;
 
   const tpl    = await Jimp.read(templateBuf);
   let   result = await Jimp.read(resultBuf);
@@ -331,53 +336,117 @@ async function compositeResult(templateBuf, resultBuf, bbox) {
   const fanH = maxY - minY + 1;
 
   console.log(`  AI 图缩放至扇面包围盒：${fanW}×${fanH}`);
-  // cover：铺满扇面（前端已按扇面比例请求 T2I，裁剪量极小）
   result.cover(fanW, fanH, Jimp.HORIZONTAL_ALIGN_CENTER | Jimp.VERTICAL_ALIGN_MIDDLE, Jimp.RESIZE_HERMITE);
 
-  const output   = tpl.clone();
-  const tplData  = tpl.bitmap.data;
-  const outData  = output.bitmap.data;
-  const aiData   = result.bitmap.data;
-  const aiW      = result.bitmap.width;
+  const output  = tpl.clone();
+  const tplData = tpl.bitmap.data;
+  const outData = output.bitmap.data;
+  const aiData  = result.bitmap.data;
+  const aiW     = result.bitmap.width;
+  const n       = tplW * tplH;
 
-  // 步骤 1：替换扇面主体像素（仅 fanCidSet 内的连通分量，排除扇钉等小区域）
+  // ── 全分辨率 BFS：标记从图像边缘可达的 #111111 像素（= 背景）──────────
+  // 这样即使是圆形扇面边界 1 像素处也能被精确区分，不受缩放插值干扰。
+  const isBg = new Uint8Array(n);
+  const q    = new Int32Array(n);
+  let qHead = 0, qTail = 0;
+
+  function seedBg(x, y) {
+    const i = y * tplW + x;
+    if (isBg[i]) return;
+    const p = i * 4;
+    if (isFanFace(tplData[p], tplData[p + 1], tplData[p + 2])) {
+      isBg[i] = 1;
+      q[qTail++] = i;
+    }
+  }
+  for (let x = 0; x < tplW; x++) { seedBg(x, 0); seedBg(x, tplH - 1); }
+  for (let y = 1; y < tplH - 1; y++) { seedBg(0, y); seedBg(tplW - 1, y); }
+  while (qHead < qTail) {
+    const i = q[qHead++];
+    const x = i % tplW, y = (i / tplW) | 0;
+    if (x > 0)       seedBg(x - 1, y);
+    if (x < tplW - 1) seedBg(x + 1, y);
+    if (y > 0)       seedBg(x, y - 1);
+    if (y < tplH - 1) seedBg(x, y + 1);
+  }
+
+  // ── 全分辨率连通分量：区��扇面主体 vs 扇钉等小封闭区域 ──────────────
+  const compId = new Int32Array(n);
+  const comps  = [];
+  const bq     = new Int32Array(n);
+
+  for (let si = 0; si < n; si++) {
+    if (compId[si] || isBg[si]) continue;
+    const p0 = si * 4;
+    if (!isFanFace(tplData[p0], tplData[p0 + 1], tplData[p0 + 2])) continue;
+
+    const cid = comps.length + 1;
+    let size = 0, bqH = 0, bqT = 0;
+    compId[si] = cid;
+    bq[bqT++] = si;
+
+    while (bqH < bqT) {
+      const i  = bq[bqH++];
+      size++;
+      const cx = i % tplW, cy = (i / tplW) | 0;
+      if (cx > 0)        { const ni = i - 1;    if (!compId[ni] && !isBg[ni]) { const np = ni * 4; if (isFanFace(tplData[np], tplData[np+1], tplData[np+2])) { compId[ni] = cid; bq[bqT++] = ni; } } }
+      if (cx < tplW - 1) { const ni = i + 1;    if (!compId[ni] && !isBg[ni]) { const np = ni * 4; if (isFanFace(tplData[np], tplData[np+1], tplData[np+2])) { compId[ni] = cid; bq[bqT++] = ni; } } }
+      if (cy > 0)        { const ni = i - tplW; if (!compId[ni] && !isBg[ni]) { const np = ni * 4; if (isFanFace(tplData[np], tplData[np+1], tplData[np+2])) { compId[ni] = cid; bq[bqT++] = ni; } } }
+      if (cy < tplH - 1) { const ni = i + tplW; if (!compId[ni] && !isBg[ni]) { const np = ni * 4; if (isFanFace(tplData[np], tplData[np+1], tplData[np+2])) { compId[ni] = cid; bq[bqT++] = ni; } } }
+    }
+    comps.push({ id: cid, size });
+  }
+
+  const maxSize    = comps.reduce((m, c) => Math.max(m, c.size), 0);
+  const totalInner = comps.reduce((s, c) => s + c.size, 0);
+  const threshold  = Math.max(maxSize * 0.20, totalInner * 0.02);
+  const fanCidSet  = new Set(comps.filter(c => c.size >= threshold).map(c => c.id));
+  console.log(`  全分辨率：封闭区域 ${comps.length} 个，扇面主体 ${fanCidSet.size} 个`);
+
+  // 步骤 1：扇面主体像素替换为 AI 内容
   for (let y = minY; y <= maxY; y++) {
     for (let x = minX; x <= maxX; x++) {
       const idx = (y * tplW + x) * 4;
-      if (!isFanFace(tplData[idx], tplData[idx+1], tplData[idx+2])) continue;
-
-      const sx = Math.min((x / scale) | 0, smallW - 1);
-      const sy = Math.min((y / scale) | 0, smallH - 1);
-      if (!fanCidSet.has(compId[sy * smallW + sx])) continue;
+      if (!isFanFace(tplData[idx], tplData[idx + 1], tplData[idx + 2])) continue;
+      if (!fanCidSet.has(compId[y * tplW + x])) continue;
 
       const aiX   = Math.min(x - minX, fanW - 1);
       const aiY   = Math.min(y - minY, fanH - 1);
       const aiIdx = (aiY * aiW + aiX) * 4;
-      outData[idx]   = aiData[aiIdx];
-      outData[idx+1] = aiData[aiIdx+1];
-      outData[idx+2] = aiData[aiIdx+2];
-      outData[idx+3] = aiData[aiIdx+3];
+      outData[idx]     = aiData[aiIdx];
+      outData[idx + 1] = aiData[aiIdx + 1];
+      outData[idx + 2] = aiData[aiIdx + 2];
+      outData[idx + 3] = aiData[aiIdx + 3];
     }
   }
 
-  // 步骤 2：依据原始模板，将「非扇面主体的 #111111」设为透明
-  //  - 背景（扇形外侧）→ 透明
-  //  - 扇钉等小封闭区域 → 透明
-  //  - 扇面主体（已被 AI 像素替换）→ 跳过，保留 AI 内容
-  for (let i = 0, n = tplW * tplH; i < n; i++) {
+  // 步骤 2：背景 + 小封闭区域（扇钉等）→ 透明
+  for (let i = 0; i < n; i++) {
     const p = i * 4;
-    if (!isFanFace(tplData[p], tplData[p+1], tplData[p+2])) continue;
-
-    const x  = i % tplW;
-    const y  = (i / tplW) | 0;
-    const sx = Math.min((x / scale) | 0, smallW - 1);
-    const sy = Math.min((y / scale) | 0, smallH - 1);
-    if (fanCidSet.has(compId[sy * smallW + sx])) continue;
-
-    outData[p+3] = 0;
+    if (!isFanFace(tplData[p], tplData[p + 1], tplData[p + 2])) continue;
+    if (fanCidSet.has(compId[i])) continue;
+    outData[p + 3] = 0;
   }
 
   return output;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// PNG → PDF 转换（纯 JS，无外部依赖，CorelDRAW 可直接导入）
+// ─────────────────────────────────────────────────────────────────────
+async function pngToPDF(pngBuf, host) {
+  const pdfDoc  = await PDFDocument.create();
+  const pngImg  = await pdfDoc.embedPng(pngBuf);
+  const { width: W, height: H } = pngImg;
+  const page = pdfDoc.addPage([W, H]);
+  page.drawImage(pngImg, { x: 0, y: 0, width: W, height: H });
+  const pdfBytes = await pdfDoc.save();
+
+  const base    = `pdf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const pdfPath = path.join(UPLOADS_DIR, `${base}.pdf`);
+  fs.writeFileSync(pdfPath, pdfBytes);
+  return `http://${host}/uploads/${base}.pdf`;
 }
 
 async function saveToUploads(jimpImg, host) {
@@ -385,7 +454,16 @@ async function saveToUploads(jimpImg, host) {
   const filepath = path.join(UPLOADS_DIR, filename);
   const buf = await jimpImg.getBufferAsync(Jimp.MIME_PNG);
   fs.writeFileSync(filepath, buf);
-  return `http://${host}/uploads/${filename}`;
+  const url = `http://${host}/uploads/${filename}`;
+
+  let pdfUrl = null;
+  try {
+    pdfUrl = await pngToPDF(buf, host);
+    console.log('  ✓ PDF 已生成');
+  } catch (e) {
+    console.warn('  ⚠ PDF 生成失败:', e.message);
+  }
+  return { url, cdrUrl: pdfUrl };
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -406,6 +484,7 @@ router.post('/generate', async (req, res) => {
   try {
     console.log(`\n▶ 文生图  prompt="${prompt}"  size=${width}x${height}  style=${genStyle||'默认'}`);
     let imgUrl = await volcT2I(prompt, width, height, genStyle);
+    let cdrUrl = null;
 
     // 无模板场景：若有商家信息则在图上叠加文字
     if (hasContent(merchantInfo)) {
@@ -415,10 +494,20 @@ router.post('/generate', async (req, res) => {
       const filename = `gen-text-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
       fs.writeFileSync(path.join(UPLOADS_DIR, filename), overlaid);
       imgUrl = `http://${req.get('host')}/uploads/${filename}`;
+      try { cdrUrl = await pngToPDF(overlaid, req.get('host')); } catch (e) {
+        console.warn('  ⚠ CDR 转换失败:', e.message);
+      }
+    } else {
+      try {
+        const rawBuf = await fetchBuffer(imgUrl);
+        cdrUrl = await pngToPDF(rawBuf, req.get('host'));
+      } catch (e) {
+        console.warn('  ⚠ CDR 转换失败:', e.message);
+      }
     }
 
     console.log('  ✓ 完成');
-    res.json({ images: [{ url: imgUrl }] });
+    res.json({ images: [{ url: imgUrl, cdrUrl }] });
   } catch (err) {
     console.error('  ✗', err.message);
     res.status(500).json({ message: err.message });
@@ -486,9 +575,9 @@ router.post('/inpaint', async (req, res) => {
     const aiBuf    = await fetchBuffer(aiUrl);
     const finalImg = await compositeResult(tplBufOrig, aiBuf, bbox);
 
-    const finalUrl = await saveToUploads(finalImg, req.get('host'));
+    const { url: finalUrl, cdrUrl } = await saveToUploads(finalImg, req.get('host'));
     console.log(`  ✓ 完成：${finalUrl}`);
-    res.json({ images: [{ url: finalUrl }] });
+    res.json({ images: [{ url: finalUrl, cdrUrl }] });
 
   } catch (err) {
     console.error('  ✗ inpaint:', err.message);
@@ -746,7 +835,8 @@ router.post('/fusion', async (req, res) => {
  * 返回: { images: [{ url }] }
  */
 router.post('/composite-template', async (req, res) => {
-  const { imageUrl, templateUrl, merchantInfo, genStyle = '' } = req.body || {};
+  const { imageUrl, templateUrl, merchantInfo, genStyle = '', imageElements } = req.body || {};
+  console.log(`  [composite-template] imageElements 收到: ${imageElements ? imageElements.length + ' 个' : 'undefined/null'}`);
   if (!imageUrl)    return res.status(400).json({ error: '请提供 imageUrl' });
   if (!templateUrl) return res.status(400).json({ error: '请提供 templateUrl' });
 
@@ -773,20 +863,313 @@ router.post('/composite-template', async (req, res) => {
     aiImg.cover(bbW, bbH, Jimp.HORIZONTAL_ALIGN_CENTER | Jimp.VERTICAL_ALIGN_MIDDLE, Jimp.RESIZE_HERMITE);
     aiBuf = await aiImg.getBufferAsync(Jimp.MIME_PNG);
 
+    // 保存"干净"AI 图（叠字前），供后续文字位置重新编辑
+    let cleanScaledUrl    = null;
+    let cleanCompositeUrl = null;
+    let initialFraction   = null;
+    let textLines         = [];
+
+    console.log(`  [composite-template] merchantInfo:`, merchantInfo);
+    console.log(`  [composite-template] hasContent:`, hasContent(merchantInfo));
+
     if (hasContent(merchantInfo)) {
-      console.log(`  叠加商家文字（扇面尺寸 ${bbW}×${bbH}，比例 ${(bbW/bbH).toFixed(2)}）…`);
-      aiBuf = await overlayMerchantText(aiBuf, merchantInfo, { fanW: bbW, fanH: bbH, genStyle });
+      // 计算默认文字中心分数（与 textOverlay.js 安全区逻辑保持一致）
+      const ratio = bbW / bbH;
+      let safeTop, safeBottom;
+      if      (ratio <= 0.9)  { safeTop = 0.22; safeBottom = 0.70; }
+      else if (ratio >= 1.4)  { safeTop = 0.18; safeBottom = 0.65; }
+      else                    { safeTop = 0.20; safeBottom = 0.68; }
+      initialFraction = safeTop + (safeBottom - safeTop) * 0.52;
+
+      // 保存干净 AI 图，供 recomposite-text 渲染背景用
+      const cleanFname = `clean-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+      fs.writeFileSync(path.join(UPLOADS_DIR, cleanFname), aiBuf);
+      cleanScaledUrl = `http://${req.get('host')}/uploads/${cleanFname}`;
+
+      const bgStyleMap = { photo: 'festive', chinese: 'elegant', business: 'festive', illustration: 'festive' };
+
+      // 生成背景底图（无文字），合成进扇面模板，供编辑器展示
+      const bgOnlyBuf    = await renderAdBackground(aiBuf, bbW, bbH, bgStyleMap[genStyle] || 'festive');
+      const bgOnlyFanImg = await compositeResult(tplBufOrig, bgOnlyBuf, bbox);
+      const bgOnlyPng    = await bgOnlyFanImg.getBufferAsync(Jimp.MIME_PNG);
+      const bgOnlyFname  = `bgonly-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+      fs.writeFileSync(path.join(UPLOADS_DIR, bgOnlyFname), bgOnlyPng);
+      cleanCompositeUrl  = `http://${req.get('host')}/uploads/${bgOnlyFname}`;
+      console.log(`  背景底图：${cleanCompositeUrl}`);
+
+      console.log(`  广告排版渲染（canvas，扇面尺寸 ${bbW}×${bbH}）…`);
+      const adConfig = {
+        companyName:   merchantInfo.shopName   || '',
+        headline:      merchantInfo.mainTitle  || '',
+        subheadline:   merchantInfo.subTitle   || '',
+        subheadlines:  merchantInfo.subTitles  || [],
+        phone:         merchantInfo.phone      || '',
+        address:       merchantInfo.address    || '',
+        qrText:        merchantInfo.qrText     || '',
+        promoItems:    merchantInfo.promoItems || [],
+        bgStyle:       bgStyleMap[genStyle]    || 'festive',
+      };
+      const { buffer: posterBuf, textLayout } = await renderAdPoster(adConfig, aiBuf, bbW, bbH);
+      aiBuf     = posterBuf;
+      textLines = textLayout || [];
+
+      // 叠加用户上传的图片元素（如 LOGO）
+      if (imageElements && imageElements.length > 0) {
+        console.log(`  叠加用户图片元素 ${imageElements.length} 个…`);
+        aiBuf = await overlayImageElements(aiBuf, imageElements, bbW, bbH);
+      }
     }
     const finalImg = await compositeResult(tplBufOrig, aiBuf, bbox);
 
-    const finalUrl = await saveToUploads(finalImg, req.get('host'));
+    const { url: finalUrl, cdrUrl } = await saveToUploads(finalImg, req.get('host'));
     console.log(`  ✓ 完成：${finalUrl}`);
     res.json({
       images: [{ url: finalUrl }],
       fanBox: { minX: bbox.minX, minY: bbox.minY, maxX: bbox.maxX, maxY: bbox.maxY },
+      cleanScaledUrl,
+      cleanCompositeUrl,
+      bbW,
+      bbH,
+      templateUrl: req.body.templateUrl,
+      initialFraction,
+      cdrUrl,
+      textLines: textLines || [],
     });
   } catch (err) {
     console.error('  ✗ composite-template:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * 将前端传来的图片元素（如LOGO）叠加到文字图上
+ * @param {Buffer} baseBuf  文字叠加后的图片 Buffer
+ * @param {Array}  elements [{ src, x, y, width, height, rotation }]
+ * @param {number} bboxW    扇面宽度（像素）
+ * @param {number} bboxH    扇面高度（像素）
+ * @returns {Promise<Buffer>}
+ */
+async function overlayImageElements(baseBuf, elements, bboxW, bboxH) {
+  if (!elements || elements.length === 0) return baseBuf;
+  console.log(`  [overlayImg] canvas ${bboxW}×${bboxH}, ${elements.length} 个元素`);
+  const canvas = createCanvas(bboxW, bboxH);
+  const ctx = canvas.getContext('2d');
+  const baseImg = await loadImage(baseBuf);
+  ctx.drawImage(baseImg, 0, 0, bboxW, bboxH);
+  for (const el of elements) {
+    try {
+      if (!el.src || typeof el.src !== 'string') { console.warn('  [overlayImg] 跳过：src无效'); continue; }
+      const base64Data = el.src.includes(',') ? el.src.split(',')[1] : el.src;
+      console.log(`  [overlayImg] base64 长度: ${base64Data.length}`);
+      const imgBuf = Buffer.from(base64Data, 'base64');
+      console.log(`  [overlayImg] imgBuf 大小: ${imgBuf.length} bytes`);
+      const img = await loadImage(imgBuf);
+      console.log(`  [overlayImg] 图片尺寸: ${img.width}×${img.height}`);
+      const w  = Math.round((el.width  || 0.18) * bboxW);
+      const h  = Math.round((el.height || 0.18) * bboxH);
+      const cx = (el.x != null ? el.x : 0.5) * bboxW;
+      const cy = (el.y != null ? el.y : 0.5) * bboxH;
+      console.log(`  [overlayImg] 绘制: center(${Math.round(cx)},${Math.round(cy)}) size ${w}×${h}`);
+      ctx.save();
+      ctx.translate(cx, cy);
+      if (el.rotation) ctx.rotate(el.rotation * Math.PI / 180);
+      ctx.drawImage(img, -w / 2, -h / 2, w, h);
+      ctx.restore();
+      console.log(`  [overlayImg] 绘制完成`);
+    } catch (e) {
+      console.warn('  [overlayImg] 跳过元素，错误:', e.message, e.stack);
+    }
+  }
+  const outBuf = canvas.toBuffer('image/png');
+  console.log(`  [overlayImg] 输出 buffer: ${outBuf.length} bytes`);
+  return outBuf;
+}
+
+/**
+ * POST /api/image/recomposite-text
+ * 以新文字中心分数重新合成扇面图（供前端编辑器调用）
+ * 支持新旧两种模式:
+ * - 新模式: textLines 数组，每行文字独立配置
+ * - 旧模式: textCenterFraction 整体文字块位置
+ */
+router.post('/recomposite-text', async (req, res) => {
+  const { cleanScaledUrl, templateUrl, merchantInfo, genStyle = '',
+          textCenterFraction, textCenterX, szMult, textLines, fanW, fanH,
+          imageElements } = req.body || {};
+  if (!cleanScaledUrl || !templateUrl || !hasContent(merchantInfo)) {
+    return res.status(400).json({ message: '参数不完整' });
+  }
+
+  const useNewMode = textLines && Array.isArray(textLines) && textLines.length > 0;
+  if (!useNewMode && textCenterFraction == null) {
+    return res.status(400).json({ message: '参数不完整' });
+  }
+
+  try {
+    if (useNewMode) {
+      console.log(`\n▶ 重新合成文字 [新模式]  ${textLines.length} 行`);
+    } else {
+      console.log(`\n▶ 重新合成文字 [旧模式]  fraction=${Number(textCenterFraction).toFixed(3)}`);
+    }
+
+    // 先获取模板和扇面尺寸
+    const tplBuf     = await fetchBuffer(templateUrl);
+    const tplImg     = await Jimp.read(tplBuf);
+    const tplBufOrig = await tplImg.getBufferAsync(Jimp.MIME_PNG);
+    const bbox       = await findFanBoundingBox(tplBufOrig);
+    
+    // bbox 的实际尺寸（compositeResult 会将文字图缩放至此尺寸）
+    const bboxW = bbox.maxX - bbox.minX;
+    const bboxH = bbox.maxY - bbox.minY;
+    console.log(`  [recomposite-text] bbox 尺寸: ${bboxW}×${bboxH}`);
+
+    const cleanFname = path.basename(new URL(cleanScaledUrl).pathname);
+    const cleanPath  = path.join(UPLOADS_DIR, cleanFname);
+    if (!fs.existsSync(cleanPath)) {
+      return res.status(404).json({ message: '原始图片不存在，请重新生成' });
+    }
+    const cleanBuf = fs.readFileSync(cleanPath);
+
+    // 关键：使用 bbox 的实际尺寸，与 compositeResult 保持一致
+    const overlayOpts = { genStyle, fanW: bboxW, fanH: bboxH, tplW: tplImg.bitmap.width, tplH: tplImg.bitmap.height };
+    console.log(`  [recomposite-text] 收到 textLines 数量: ${textLines ? textLines.length : 0}`);
+    if (useNewMode) {
+      console.log(`  [recomposite-text] 使用新模式，前端传来的 textLines:`, JSON.stringify(textLines, null, 2));
+      overlayOpts.textLines = textLines.map(line => ({
+        text:      line.text,
+        x:         line.x != null ? Number(line.x) : 0.5,
+        y:         line.y != null ? Number(line.y) : 0.5,
+        rotation:  line.rotation != null ? Number(line.rotation) : 0,
+        fontSize:  line.fontSize != null ? Number(line.fontSize) : null,
+        fontFamily: line.fontFamily || null,
+        fontWeight: line.fontWeight || null,
+        color:      line.color || null,
+        maxWidth:   line.maxWidth || null,
+        align:      line.align || null,
+        style:      line.style || null,
+        artStyle:   line.artStyle || null,
+        strokeColor: line.strokeColor || null,
+        glowColor:  line.glowColor || null,
+        colorStops: line.colorStops || null,
+      }));
+    } else {
+      overlayOpts.textCenterFraction = Number(textCenterFraction);
+      overlayOpts.textCenterX = textCenterX != null ? Number(textCenterX) : undefined;
+      overlayOpts.szMult = szMult != null ? Number(szMult) : undefined;
+    }
+
+    const bgStyleMap = { photo: 'festive', chinese: 'elegant', business: 'festive', illustration: 'festive' };
+    const bgStyle    = bgStyleMap[genStyle] || 'festive';
+    let textedBuf;
+
+    if (useNewMode) {
+      // 编辑器模式：先渲染背景，再把前端拖拽好的 textLines 叠加上去
+      console.log(`  [recomposite-text] 编辑器模式：渲染背景 + 叠加 ${textLines.length} 行文字`);
+      const bgBuf = await renderAdBackground(cleanBuf, bboxW, bboxH, bgStyle);
+      ({ buffer: textedBuf } = await overlayMerchantText(bgBuf, merchantInfo, overlayOpts));
+    } else {
+      // 无 textLines：全自动广告排版
+      console.log(`  [recomposite-text] 自动排版模式`);
+      const adConfig = {
+        companyName:  merchantInfo.shopName   || '',
+        headline:     merchantInfo.mainTitle  || '',
+        subheadline:  merchantInfo.subTitle   || '',
+        subheadlines: merchantInfo.subTitles  || [],
+        phone:        merchantInfo.phone      || '',
+        address:      merchantInfo.address    || '',
+        qrText:       merchantInfo.qrText     || '',
+        promoItems:   merchantInfo.promoItems || [],
+        bgStyle,
+      };
+      ({ buffer: textedBuf } = await renderAdPoster(adConfig, cleanBuf, bboxW, bboxH));
+    }
+
+    // Overlay user-uploaded image elements (e.g. LOGO)
+    const mergedBuf = await overlayImageElements(textedBuf, imageElements, bboxW, bboxH);
+
+    const finalImg = await compositeResult(tplBufOrig, mergedBuf, bbox);
+    const { url: finalUrl, cdrUrl } = await saveToUploads(finalImg, req.get('host'));
+    console.log(`  ✓ 完成：${finalUrl}`);
+
+    res.json({
+      url: finalUrl,
+      fanBox: { minX: bbox.minX, minY: bbox.minY, maxX: bbox.maxX, maxY: bbox.maxY },
+      cdrUrl,
+    });
+  } catch (err) {
+    console.error('  ✗ recomposite-text:', err.message);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// POST /api/image/generate-ad-fan
+// 混合方案：火山引擎生成氛围背景 + Puppeteer 渲染广告排版 + 合成进扇面模板
+// ─────────────────────────────────────────────────────────────────────
+const { renderAdPoster, renderAdBackground, AD_BG_PROMPTS } = require('./adPoster');
+
+router.post('/generate-ad-fan', async (req, res) => {
+  const { templateUrl, adConfig = {} } = req.body || {};
+  const {
+    companyName = '', headline = '', subheadline = '',
+    promoItems  = [], phone = '', address = '',
+    qrText = '', bgStyle = 'festive', logoBase64 = '',
+  } = adConfig;
+
+  if (!headline.trim() && !companyName.trim()) {
+    return res.status(400).json({ error: '请至少填写公司名称或大标题' });
+  }
+
+  try {
+    console.log(`\n▶ 广告扇面生成  bgStyle="${bgStyle}"  headline="${headline}"`);
+
+    // 1. 确定扇面尺寸
+    let bbW = 1024, bbH = 1024;
+    let tplBufOrig = null;
+    let bbox       = null;
+
+    if (templateUrl) {
+      console.log('  [1/4] 下载模板，识别扇面…');
+      const tplBuf = await fetchBuffer(templateUrl);
+      const tplImg = await Jimp.read(tplBuf);
+      tplBufOrig   = await tplImg.getBufferAsync(Jimp.MIME_PNG);
+      bbox         = await findFanBoundingBox(tplBufOrig);
+      bbW = bbox.maxX - bbox.minX + 1;
+      bbH = bbox.maxY - bbox.minY + 1;
+      console.log(`  扇面包围盒：${bbW}×${bbH}`);
+    } else {
+      console.log('  [1/4] 无模板，使用默��� 1024×1024');
+    }
+
+    // 2. 火山引擎生成氛围背景（无文字）
+    console.log('  [2/4] 火山引擎生成背景…');
+    const bgPrompt = AD_BG_PROMPTS[bgStyle] || AD_BG_PROMPTS.festive;
+    const bgUrl    = await volcT2I(bgPrompt, bbW, bbH);
+    const bgBuf    = await fetchBuffer(bgUrl);
+
+    // 3. Puppeteer 渲染广告版面
+    console.log('  [3/4] Puppeteer 渲染广告排版…');
+    const { buffer: adBuf } = await renderAdPoster(
+      { companyName, headline, subheadline, promoItems, phone, address, qrText, bgStyle, logoBase64 },
+      bgBuf, bbW, bbH
+    );
+
+    // 4. 合成进扇面模板（或直接保存）
+    let finalImg;
+    if (tplBufOrig && bbox) {
+      console.log('  [4/4] 合成进扇面模板…');
+      finalImg = await compositeResult(tplBufOrig, adBuf, bbox);
+    } else {
+      console.log('  [4/4] 无模板，直接输出广告图…');
+      finalImg = await Jimp.read(adBuf);
+    }
+
+    const { url: finalUrl, cdrUrl } = await saveToUploads(finalImg, req.get('host'));
+    console.log(`  ✓ 完成：${finalUrl}`);
+    res.json({ images: [{ url: finalUrl, cdrUrl }] });
+
+  } catch (err) {
+    console.error('  ✗ generate-ad-fan:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

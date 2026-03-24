@@ -28,7 +28,11 @@ FONT_REGS.forEach(({ file, family }) => {
 
 function hasContent(info) {
   if (!info) return false;
-  return Object.values(info).some(v => v && v.trim());
+  return Object.values(info).some(v => {
+    if (!v) return false;
+    if (Array.isArray(v)) return v.length > 0;
+    return String(v).trim().length > 0;
+  });
 }
 
 // ── 风格配色 + 字体 + 字重表 ─────────────────────────────────────────────
@@ -140,6 +144,59 @@ const STYLE_PALETTES = {
   },
 };
 
+// ── 分析 canvas 指定区域的平均亮度（0-255）──
+// 用于决定蒙版深浅：背景越亮，蒙版越深，确保文字始终可读
+function analyzeBrightness(sourceCanvas, zoneY, zoneH) {
+  try {
+    const W  = sourceCanvas.width;
+    const sW = 50;
+    const sH = Math.max(1, Math.round(sW * Math.max(1, zoneH) / W));
+    const sc  = createCanvas(sW, sH);
+    const sct = sc.getContext('2d');
+    sct.drawImage(sourceCanvas, 0, Math.max(0, zoneY), W, Math.max(1, zoneH), 0, 0, sW, sH);
+    const d = sct.getImageData(0, 0, sW, sH).data;
+    let sum = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      sum += d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+    }
+    return sum / (sW * sH);
+  } catch { return 100; }
+}
+
+// ── 绘制文字区域背景蒙版（渐变遮罩，自适应亮度 + 风格配色）──
+// 效果：文字区域像从图片中自然浮现，而非硬贴在图片上
+function drawTextScrim(ctx, W, H, topY, bottomY, brightness, decorStyle) {
+  const bandH   = Math.max(1, bottomY - topY);
+  const fadeH   = Math.round(bandH * 0.55);
+  const t0      = Math.max(0, topY    - fadeH);
+  const t1      = Math.min(H, bottomY + fadeH);
+  // 背景越亮蒙版越深，背景本已较暗则��轻避免图片太黑
+  const opacity = brightness > 160 ? 0.68 : brightness > 100 ? 0.56 : 0.44;
+  // 各风格蒙版底色（与对应配色方案协调）
+  const BASE = {
+    chinese:      [20,  5,  0],
+    illustration: [14,  4, 24],
+    photo:        [ 8,  8,  8],
+    business:     [ 0,  8, 22],
+    classic:      [14,  9,  0],
+    dots:         [14,  4, 24],
+    minimal:      [ 8,  8,  8],
+    modern:       [ 0,  8, 22],
+  };
+  const [r, g, b] = BASE[decorStyle] || [12, 8, 0];
+  const mid  = `rgba(${r},${g},${b},${opacity.toFixed(2)})`;
+  const soft = `rgba(${r},${g},${b},${(opacity * 0.30).toFixed(2)})`;
+  const grad = ctx.createLinearGradient(0, t0, 0, t1);
+  grad.addColorStop(0,    'rgba(0,0,0,0)');
+  grad.addColorStop(0.18, soft);
+  grad.addColorStop(0.36, mid);
+  grad.addColorStop(0.64, mid);
+  grad.addColorStop(0.82, soft);
+  grad.addColorStop(1,    'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, t0, W, t1 - t0);
+}
+
 /**
  * 在图片上叠加商家信息文字
  */
@@ -147,6 +204,9 @@ async function overlayMerchantText(imageBuf, merchantInfo, fanInfo = {}) {
   if (!hasContent(merchantInfo)) return imageBuf;
 
   const { shopName = '', mainTitle = '', subTitle = '', phone = '', address = '' } = merchantInfo;
+  const subTitles = (merchantInfo.subTitles && merchantInfo.subTitles.length > 0)
+    ? merchantInfo.subTitles
+    : (subTitle ? [subTitle] : []);
   const rawStyle = (fanInfo.genStyle || 'default').toLowerCase();
   const palette  = STYLE_PALETTES[rawStyle] || STYLE_PALETTES.default;
 
@@ -173,6 +233,10 @@ async function overlayMerchantText(imageBuf, merchantInfo, fanInfo = {}) {
   const safeH      = safeEndY - safeStartY;
   const maxW       = Math.round(W * maxWRatio);
   const cx         = W / 2;
+
+  // 模板模式下文字放大补偿：扇面包围盒嵌入整张模板后会缩小，
+  // 用 tplH/H 的比例把字号等比放大，使最终显示尺寸与无模板时一致。
+  const scaleMult = (fanInfo.tplH && fanInfo.tplH > H) ? fanInfo.tplH / H : 1;
 
   const canvas = createCanvas(W, H);
   const ctx    = canvas.getContext('2d');
@@ -348,31 +412,184 @@ async function overlayMerchantText(imageBuf, merchantInfo, fanInfo = {}) {
     clearShadow();
   }
 
-  // ── 字体大小 ──
-  const shopFontSize = Math.round(safeH * 0.18);
-  const mainFontSize = Math.round(safeH * 0.15);
-  const subFontSize  = Math.round(safeH * 0.12);
-  const cntFontSize  = Math.round(safeH * 0.09);
-  const lineGap      = Math.round(safeH * 0.04);
+  // ── 自定义文字行模式（前端编辑器调整后的位置 / 样式）──
+  // 当 fanInfo.textLines 存在且非空时，按每行的精确坐标渲染，忽略自动排版
+  if (fanInfo.textLines && Array.isArray(fanInfo.textLines) && fanInfo.textLines.length > 0) {
+    const pal = STYLE_PALETTES[(fanInfo.genStyle || 'default').toLowerCase()] || STYLE_PALETTES.default;
+
+    // 分析文字区域亮度，绘制自适应背景蒙版
+    const activeLines = fanInfo.textLines.filter(l => l.text);
+    if (activeLines.length > 0) {
+      const lineYs = activeLines.map(l => (l.y != null ? l.y : 0.5) * H);
+      const padY   = Math.round(H * 0.07);
+      const scrimT = Math.min(...lineYs) - padY;
+      const scrimB = Math.max(...lineYs) + padY;
+      const br     = analyzeBrightness(canvas, scrimT, scrimB - scrimT);
+      drawTextScrim(ctx, W, H, scrimT, scrimB, br, pal.decorStyle);
+    }
+
+    for (const line of fanInfo.textLines) {
+      if (!line.text) continue;
+
+      const x        = (line.x  != null ? line.x  : 0.5) * W;
+      const y        = (line.y  != null ? line.y  : 0.5) * H;
+      const fs       = Math.max(8, line.fontSize || Math.round(H * 0.06));
+      const family   = line.fontFamily  || 'MSYaHei';
+      const weight   = line.fontWeight  || 'normal';
+      const rotation = line.rotation    || 0;
+      const artStyle = line.artStyle    || '';
+      const color    = line.color       || '#FFE840';
+      const strokeC  = line.strokeColor || '#333333';
+      const glowC    = line.glowColor   || '#FFD700';
+      const lineMaxW = Math.round(W * 0.90);
+      const sw       = Math.max(1, Math.round(fs * 0.08));
+
+      ctx.save();
+      if (rotation !== 0) {
+        ctx.translate(x, y);
+        ctx.rotate(rotation * Math.PI / 180);
+        ctx.translate(-x, -y);
+      }
+
+      // ── 促销项目：白色卡片 + 圆形序号徽章 + 文字 ──────────────────────
+      if (line.style === 'promo') {
+        const m = line.text.match(/^(\d+)\.\s*(.*)/);
+        const badgeNum = m ? m[1] : '';
+        const itemText = m ? m[2] : line.text;
+
+        const bgStyleMap = { photo: 'festive', chinese: 'elegant', business: 'business', illustration: 'festive' };
+        const themeKey   = bgStyleMap[(fanInfo.genStyle || '').toLowerCase()] || 'festive';
+        const BADGE_BG   = { festive: 'rgba(200,50,0,0.75)',   business: 'rgba(0,50,160,0.75)',  elegant: 'rgba(120,20,0,0.75)'  };
+        const BADGE_FG   = { festive: '#FFE840',               business: '#FFFFFF',              elegant: '#FFE8A0'              };
+        const ACCENT     = { festive: '#FFD700',               business: '#60AAFF',              elegant: '#E8B860'              };
+        const CARD_BG    = { festive: 'rgba(50,5,0,0.72)',     business: 'rgba(0,8,50,0.72)',    elegant: 'rgba(35,5,0,0.72)'   };
+        const CARD_TEXT  = { festive: 'rgba(255,235,180,0.95)',business: 'rgba(200,225,255,0.95)',elegant: 'rgba(255,235,190,0.95)' };
+        const badgeBg = BADGE_BG[themeKey] || BADGE_BG.festive;
+        const badgeFg = BADGE_FG[themeKey] || BADGE_FG.festive;
+        const accentC = ACCENT[themeKey]   || ACCENT.festive;
+
+        ctx.font = `bold ${fs}px "Microsoft YaHei","MSYaHei",sans-serif`;
+        const itemMetrics = ctx.measureText(itemText);
+        const cardH    = Math.round(fs * 2.2);
+        const badgeR   = Math.round(cardH * 0.28);
+        const badgeAreaW = badgeR * 2 + Math.round(cardH * 0.3);
+        const cardW    = Math.min(itemMetrics.width + badgeAreaW + fs * 0.8, W * 0.82);
+
+        // 深色半透明背景盒子（去掉白色横带效果）
+        ctx.fillStyle   = CARD_BG[themeKey] || 'rgba(40,5,0,0.72)';
+        ctx.strokeStyle = accentC;
+        ctx.lineWidth   = Math.max(1, Math.round(fs * 0.04));
+        ctx.beginPath();
+        ctx.roundRect(x - cardW / 2, y - cardH / 2, cardW, cardH, Math.round(cardH * 0.18));
+        ctx.fill(); ctx.stroke();
+
+        // 顶部高光条
+        const hlG = ctx.createLinearGradient(x - cardW / 2, y, x + cardW / 2, y);
+        hlG.addColorStop(0, accentC + '00'); hlG.addColorStop(0.5, accentC + '88'); hlG.addColorStop(1, accentC + '00');
+        ctx.fillStyle = hlG;
+        ctx.fillRect(x - cardW / 2 + 3, y - cardH / 2, cardW - 6, Math.round(cardH * 0.07));
+
+        // 圆形序号徽章
+        const badgeCX = x - cardW / 2 + badgeR + Math.round(cardH * 0.12);
+        ctx.beginPath(); ctx.arc(badgeCX, y, badgeR, 0, Math.PI * 2);
+        ctx.fillStyle = badgeBg; ctx.fill();
+        ctx.strokeStyle = accentC; ctx.lineWidth = Math.max(1, Math.round(badgeR * 0.15)); ctx.stroke();
+        ctx.font = `bold ${Math.round(badgeR * 1.05)}px "Microsoft YaHei",sans-serif`;
+        ctx.fillStyle = badgeFg; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(badgeNum, badgeCX, y);
+
+        // 促销文字（亮色，深底上可读）
+        const textX    = badgeCX + badgeR + Math.round(cardH * 0.1);
+        const textMaxW = cardW - (textX - (x - cardW / 2)) - Math.round(cardH * 0.08);
+        ctx.font = `bold ${fs}px "Microsoft YaHei","MSYaHei",sans-serif`;
+        ctx.fillStyle = CARD_TEXT[themeKey] || 'rgba(255,235,180,0.95)';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.fillText(itemText, textX, y, textMaxW);
+
+        ctx.restore();
+        continue;
+      }
+      // ──────────────────────────────────────────────────────────────────
+
+      ctx.font         = `${weight} ${fs}px "${family}", sans-serif`;
+      ctx.textAlign    = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineJoin     = 'round';
+
+      // Art: stroke
+      if (artStyle === 'stroke') {
+        ctx.strokeStyle = strokeC;
+        ctx.lineWidth   = Math.max(2, fs * 0.12);
+        ctx.strokeText(line.text, x, y, lineMaxW);
+      }
+
+      // Art: glow
+      if (artStyle === 'glow') {
+        ctx.strokeStyle = glowC;
+        ctx.lineWidth   = sw * 3;
+        ctx.shadowColor = glowC;
+        ctx.shadowBlur  = fs * 0.5;
+        ctx.strokeText(line.text, x, y, lineMaxW);
+        clearShadow();
+      }
+
+      // 对比描边（始终绘制，增强可读性）
+      ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+      ctx.lineWidth   = Math.max(1, sw * 0.5);
+      ctx.strokeText(line.text, x, y, lineMaxW);
+
+      // 填充色
+      let fillStyle = color;
+      if (line.style === 'shopgrad' || artStyle === 'gradient') {
+        const stops = line.colorStops || pal.shopGrad || ['#FFE840', '#FF7020'];
+        const grad  = ctx.createLinearGradient(0, y - fs / 2, 0, y + fs / 2);
+        stops.forEach((c, i) => grad.addColorStop(i / (stops.length - 1), c));
+        fillStyle = grad;
+      }
+      ctx.fillStyle   = fillStyle;
+      ctx.shadowColor = 'rgba(0,0,0,0.4)';
+      ctx.shadowBlur  = fs * 0.1;
+      ctx.fillText(line.text, x, y, lineMaxW);
+      clearShadow();
+
+      ctx.restore();
+    }
+
+    return { buffer: canvas.toBuffer('image/png'), textLines: fanInfo.textLines };
+  }
+
+  // ── 字体大小（乘以 scaleMult 补偿模板缩放）──
+  const shopFontSize = Math.round(safeH * 0.09 * scaleMult);
+  const mainFontSize = Math.round(safeH * 0.075 * scaleMult);
+  const subFontSize  = Math.round(safeH * 0.062 * scaleMult);
+  const cntFontSize  = Math.round(safeH * 0.050 * scaleMult);
+  const lineGap      = Math.round(safeH * 0.025 * scaleMult);
 
   // ── 排版列表（字重取自风格配置）──
   const items = [];
   if (shopName)  items.push({ text: shopName,  size: shopFontSize, weight: palette.shopWeight, style: 'shopgrad', isShop: true });
-  if (shopName && (mainTitle || subTitle || phone || address)) items.push({ type: 'line' });
+  if (shopName && (mainTitle || subTitles.length > 0 || phone || address)) items.push({ type: 'line' });
   if (mainTitle) items.push({ text: mainTitle, size: mainFontSize, weight: palette.mainWeight, style: 'main' });
-  if (subTitle)  items.push({ text: subTitle,  size: subFontSize,  weight: palette.subWeight,  style: 'sub' });
+  subTitles.forEach(st => { if (st) items.push({ text: st, size: subFontSize, weight: palette.subWeight, style: 'sub' }); });
   const contact = [phone, address].filter(Boolean).join('   ');
   if (contact)   items.push({ text: contact,   size: cntFontSize,  weight: palette.cntWeight,  style: 'contact' });
 
   // ── 总高度 & 垂直居中 ──
   let totalH = 0;
   items.forEach((item, i) => {
-    totalH += item.type === 'line' ? Math.round(safeH * 0.07) : item.size;
+    totalH += item.type === 'line' ? Math.round(safeH * 0.07 * scaleMult) : item.size;
     if (i < items.length - 1) totalH += lineGap;
   });
-  const scale    = (totalH > safeH * 0.85) ? (safeH * 0.85) / totalH : 1;
+  // 模板模式放大后用画布高度做压缩上限，无模板保持原有安全区约束
+  const maxFit = scaleMult > 1 ? H * 0.9 : safeH * 0.85;
+  const scale  = (totalH > maxFit) ? maxFit / totalH : 1;
   const textMidY = safeStartY + safeH * 0.52;
   let   curY     = textMidY - (totalH * scale) / 2;
+
+  // ── 背景蒙版（根据图片实际亮度自适应，绘制在框线和文字之前）──
+  const scrimPad   = Math.round(safeH * 0.10);
+  const brightness = analyzeBrightness(canvas, Math.round(curY - scrimPad), Math.round(totalH * scale + scrimPad * 2));
+  drawTextScrim(ctx, W, H, Math.round(curY - scrimPad), Math.round(curY + totalH * scale + scrimPad), brightness, palette.decorStyle);
 
   // ── 块框线 ──
   const borderPad = Math.round(safeH * 0.038);
@@ -381,7 +598,7 @@ async function overlayMerchantText(imageBuf, merchantInfo, fanInfo = {}) {
   // ── 逐项绘制 ──
   items.forEach((item, i) => {
     if (item.type === 'line') {
-      const lineH = Math.round(safeH * 0.07 * scale);
+      const lineH = Math.round(safeH * 0.07 * scaleMult * scale);
       drawDecorLine(curY + lineH / 2, maxW * 0.55);
       curY += lineH;
     } else {
@@ -400,7 +617,7 @@ async function overlayMerchantText(imageBuf, merchantInfo, fanInfo = {}) {
     if (i < items.length - 1) curY += Math.round(lineGap * scale);
   });
 
-  return canvas.toBuffer('image/png');
+  return { buffer: canvas.toBuffer('image/png'), textLines: [] };
 }
 
 module.exports = { overlayMerchantText, hasContent };

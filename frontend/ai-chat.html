@@ -251,6 +251,35 @@
     .merchant-select { cursor:pointer; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aaa'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; padding-right:28px; }
     .merchant-label { font-size:11px; color:#999; margin-bottom:-2px; }
     .merchant-hint { font-size:11px; color:#bbb; text-align:center; margin-top:2px; }
+    .promo-rows { display:flex; flex-direction:column; gap:5px; }
+    .promo-row { display:flex; align-items:center; gap:4px; }
+    .promo-row .merchant-input { flex:1; }
+    .promo-del-btn { flex-shrink:0; width:22px; height:22px; border-radius:4px; border:1px solid #ddd; background:#fff; color:#bbb; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; padding:0; }
+    .promo-del-btn:hover { background:#fff0f0; border-color:#ffaaaa; color:#d00; }
+    .promo-add-btn { background:#fffbeb; border:1px dashed #d0c080; border-radius:6px; color:#a08000; font-size:11px; padding:5px; cursor:pointer; width:100%; font-family:inherit; margin-top:-2px; }
+    .promo-add-btn:hover { background:#fff5d0; }
+    .merchant-img-upload-label {
+      display:flex; align-items:center; justify-content:center; gap:6px;
+      padding:7px 10px; background:#f8f8f8; border:1px dashed #e0c97f;
+      border-radius:7px; color:#8B6914; cursor:pointer; font-size:12px;
+      transition:background .15s;
+    }
+    .merchant-img-upload-label:hover { background:#fffbeb; }
+    .merchant-img-preview { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+    .merchant-img-thumb {
+      position:relative; width:48px; height:48px;
+      border-radius:6px; overflow:visible;
+      border:1px solid #e0c97f; background:#f8f8f8;
+    }
+    .merchant-img-thumb img { width:100%; height:100%; object-fit:contain; border-radius:5px; display:block; }
+    .merchant-img-remove {
+      position:absolute; top:-6px; right:-6px; width:16px; height:16px;
+      border-radius:50%; background:#e74c3c; color:#fff; border:none;
+      cursor:pointer; font-size:11px; line-height:16px; padding:0; text-align:center;
+    }
+
+    /* 图片元素��辑面板 */
+    .te-img-edit { border-top:1px solid #eee; padding:12px; }
 
     /* 右侧对话框 */
     .chat-panel {
@@ -732,6 +761,327 @@
     }
     .gen-download-btn:hover { background: #e8e8e8; }
 
+    /* ===== 提交订单按钮 ===== */
+    .gen-submit-btn {
+      display: inline-block; margin-top: 6px; margin-left: 6px;
+      background: #1a1a2e; border: none; border-radius: 6px;
+      padding: 5px 12px; font-size: 12px; color: #e0c97f;
+      cursor: pointer; font-family: inherit; font-weight: bold;
+      transition: background 0.2s;
+    }
+    .gen-submit-btn:hover { background: #0f3460; }
+
+    /* ===== 订单提交弹窗 ===== */
+    .order-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 300;
+    }
+    .order-modal {
+      background: #fff; border-radius: 14px; width: 420px; max-width: 92vw;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25); overflow: hidden;
+    }
+    .order-modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 22px 14px; border-bottom: 1px solid #f0f0f0;
+      font-size: 15px; font-weight: bold; color: #1a1a2e;
+    }
+    .order-modal-close {
+      background: none; border: none; font-size: 20px; color: #bbb;
+      cursor: pointer; line-height: 1; padding: 0;
+    }
+    .order-modal-close:hover { color: #555; }
+    .order-modal-body { padding: 20px 22px 8px; display: flex; flex-direction: column; gap: 14px; }
+    .order-field label {
+      display: block; font-size: 12px; color: #888; margin-bottom: 5px;
+    }
+    .order-field label span { color: #e05c5c; }
+    .order-field input {
+      width: 100%; padding: 9px 12px; border: 1px solid #e0e0e0; border-radius: 7px;
+      font-size: 13px; font-family: inherit; outline: none; background: #fafafa;
+      transition: border-color 0.2s;
+    }
+    .order-field input:focus { border-color: #e0c97f; background: #fff; }
+    .order-err { font-size: 12px; color: #e05c5c; min-height: 18px; }
+    .order-modal-footer {
+      display: flex; gap: 10px; padding: 12px 22px 22px;
+    }
+    .order-cancel-btn {
+      flex: 1; padding: 10px 0; border: 1px solid #e0e0e0; border-radius: 8px;
+      background: #fff; font-size: 14px; font-family: inherit;
+      cursor: pointer; color: #888; transition: background 0.15s;
+    }
+    .order-cancel-btn:hover { background: #f5f5f5; }
+    .order-confirm-btn {
+      flex: 2; padding: 10px 0; border: none; border-radius: 8px;
+      background: linear-gradient(135deg, #e0c97f, #c9a227);
+      color: #1a1a2e; font-size: 14px; font-weight: bold;
+      font-family: inherit; cursor: pointer; transition: opacity 0.15s;
+    }
+    .order-confirm-btn:hover { opacity: 0.88; }
+    .order-confirm-btn:disabled { background: #ddd; color: #aaa; cursor: not-allowed; }
+
+    /* ===== 编辑器面板 Tab ===== */
+    .te-panel-tabs { display:flex; gap:8px; padding:8px 20px 0; flex-shrink:0; }
+    .te-panel-tab {
+      padding:5px 20px; border-radius:20px; border:1px solid #e0c97f;
+      background:#1a1a2e; color:#e0c97f; font-size:12px; cursor:pointer;
+      font-family:inherit; transition:background .2s;
+    }
+    .te-panel-tab.active { background:#e0c97f; color:#1a1a2e; font-weight:bold; }
+    .te-panel-tab:hover:not(.active) { background:#0f3460; }
+
+    /* ===== 编辑文字按钮 ===== */
+    .text-edit-btn {
+      display: inline-block; margin-top: 6px; margin-left: 6px;
+      background: #16213e; border: 1px solid #e0c97f; border-radius: 6px;
+      padding: 5px 12px; font-size: 12px; color: #e0c97f;
+      cursor: pointer; font-family: inherit;
+      transition: background 0.2s;
+    }
+    .text-edit-btn:hover { background: #0f3460; }
+
+    /* ===== 文字位置编辑器弹窗 ===== */
+    .te-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      z-index: 400; display: flex; align-items: center; justify-content: center;
+    }
+    .te-modal {
+      background: #fff; border-radius: 16px;
+      display: flex; flex-direction: column;
+      width: min(900px, 95vw); max-height: 98vh; overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+    }
+    .te-modal-wide { width: min(1400px, 99vw); }
+    .te-header {
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex; align-items: center;
+      font-size: 15px; font-weight: bold; color: #1a1a2e;
+      flex-shrink: 0;
+    }
+    .te-header-close {
+      margin-left: auto; background: none; border: none;
+      font-size: 20px; cursor: pointer; color: #bbb; padding: 0; line-height: 1;
+    }
+    .te-header-close:hover { color: #555; }
+    .te-desc {
+      font-size: 12px; color: #999; padding: 8px 20px 0;
+      text-align: center; flex-shrink: 0;
+    }
+    .te-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      min-height: 540px;
+    }
+    .te-canvas-wrap {
+      flex: 1; overflow: auto; padding: 8px;
+      display: flex; justify-content: center; align-items: flex-start;
+      background: #f5f5f5;
+    }
+    .te-canvas-wrap canvas { cursor: move; display: block; }
+    .te-sidebar {
+      width: 240px;
+      border-left: 1px solid #eee;
+      background: #fafafa;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    .te-sidebar-title {
+      padding: 12px 16px 8px;
+      font-size: 13px;
+      font-weight: bold;
+      color: #555;
+      border-bottom: 1px solid #eee;
+    }
+    .te-line-list {
+      padding: 8px;
+    }
+    .te-line-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 4px;
+      background: #fff;
+      border: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .te-line-item:hover {
+      background: #fdf8ec;
+      border-color: #f0e4c0;
+    }
+    .te-line-item.selected {
+      background: #fffbeb;
+      border-color: #e0c97f;
+    }
+    .te-line-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .te-line-text {
+      flex: 1;
+      font-size: 12px;
+      color: #333;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .te-line-pos {
+      font-size: 10px;
+      color: #999;
+    }
+    .te-line-edit {
+      border-top: 1px solid #eee;
+      padding: 12px;
+    }
+    .te-edit-section {
+      margin-bottom: 12px;
+    }
+    .te-edit-label {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+    .te-select {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 12px;
+      background: #fff;
+    }
+    .te-color-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .te-color-picker {
+      width: 36px;
+      height: 28px;
+      padding: 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .te-color-input {
+      flex: 1;
+      padding: 5px 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+    .te-fontsize-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .te-fontsize-slider {
+      flex: 1;
+      height: 6px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: linear-gradient(to right, #e0c97f, #FF7020);
+      border-radius: 3px;
+      outline: none;
+    }
+    .te-fontsize-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #e0c97f;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+    .te-fontsize-slider::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: #e0c97f;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+    .te-fontsize-input {
+      width: 50px;
+      padding: 5px 6px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 12px;
+      text-align: center;
+    }
+    .te-art-btns {
+      display: flex;
+      gap: 4px;
+    }
+    .te-art-btn {
+      flex: 1;
+      padding: 6px 4px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #fff;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .te-art-btn:hover {
+      border-color: #e0c97f;
+      background: #fdf8ec;
+    }
+    .te-art-btn.active {
+      border-color: #e0c97f;
+      background: #fff8e0;
+      color: #8B6914;
+    }
+    .te-err { font-size: 12px; color: #e05c5c; min-height: 18px; text-align: center; padding: 8px 20px; flex-shrink: 0; }
+    .te-footer {
+      display: flex; gap: 10px; padding: 12px 20px 16px; flex-shrink: 0;
+      border-top: 1px solid #eee;
+    }
+    .te-cancel-btn {
+      flex: 1; padding: 10px 0; border: 1px solid #e0e0e0; border-radius: 8px;
+      background: #fff; font-size: 14px; font-family: inherit;
+      cursor: pointer; color: #888; transition: background 0.15s;
+    }
+    .te-cancel-btn:hover { background: #f5f5f5; }
+    .te-confirm-btn {
+      flex: 2; padding: 10px 0; border: none; border-radius: 8px;
+      background: linear-gradient(135deg, #e0c97f, #c9a227);
+      color: #1a1a2e; font-size: 14px; font-weight: bold;
+      font-family: inherit; cursor: pointer; transition: opacity 0.15s;
+    }
+    .te-confirm-btn:hover:not(:disabled) { opacity: 0.88; }
+    .te-confirm-btn:disabled { background: #ddd; color: #aaa; cursor: not-allowed; }
+
+    /* 选中文字行的旋转手柄 */
+    .te-rotation-handle {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background: #e0c97f;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      cursor: grab;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .te-rotation-handle:active { cursor: grabbing; }
+
+    /* 选中文字行的边框 */
+    .te-selected-border {
+      position: absolute;
+      border: 2px dashed #e0c97f;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+
     /* ===== 灯箱 ===== */
     .lightbox-overlay {
       position: fixed; inset: 0;
@@ -755,7 +1105,7 @@
         <div class="ai-avatar-card">
           <div class="ai-avatar">🤖</div>
           <div class="ai-name">扇小艺</div>
-          <div class="ai-tagline">扇艺广告专属 AI 助手<br>为您提供定制咨询服务</div>
+          <div class="ai-tagline" id="aiTaglineEl">扇艺广告专属 AI 助手<br>为您提供定制咨询服务</div>
           <div class="ai-status">
             <div class="ai-status-dot"></div>
             在线服务中
@@ -816,9 +1166,20 @@
             </select>
             <input class="merchant-input" id="shopName"  placeholder="店名（如：林文静牙科）" />
             <input class="merchant-input" id="mainTitle" placeholder="主标题（如：无痛拔牙）" />
-            <input class="merchant-input" id="subTitle"  placeholder="副标题（如：一颗10元 两颗15元）" />
+            <div class="merchant-label" style="margin-top:4px;">副标题（可多条）</div>
+            <div class="promo-rows" id="subTitleRows"></div>
+            <button type="button" class="promo-add-btn" onclick="addSubTitleRow()">＋ 添加副标题</button>
             <input class="merchant-input" id="phone"     placeholder="电话" />
             <input class="merchant-input" id="address"   placeholder="地址" />
+            <div class="merchant-label" style="margin-top:4px;">促销项目（可多条）</div>
+            <div class="promo-rows" id="promoRows"></div>
+            <button type="button" class="promo-add-btn" onclick="addPromoRow()">＋ 添加促销项目</button>
+            <div class="merchant-label" style="margin-top:4px;">叠加图片（LOGO等）</div>
+            <label class="merchant-img-upload-label" id="merchantImgUploadLabel">
+              <input type="file" id="merchantImgInput" accept="image/*" multiple style="display:none" onchange="handleMerchantImgUpload(this)">
+              + 上传图片
+            </label>
+            <div id="merchantImgPreview" class="merchant-img-preview"></div>
             <div class="merchant-hint">填写后生成图片将自动叠加文字</div>
           </div>
         </div>
@@ -831,9 +1192,20 @@
           <div class="merchant-body" id="merchantBody2">
             <input class="merchant-input" id="shopName2"  placeholder="店名（反面）" />
             <input class="merchant-input" id="mainTitle2" placeholder="主标题（反面）" />
-            <input class="merchant-input" id="subTitle2"  placeholder="副标题（反面）" />
+            <div class="merchant-label" style="margin-top:4px;">副标题（可多条）</div>
+            <div class="promo-rows" id="subTitleRows2"></div>
+            <button type="button" class="promo-add-btn" onclick="addSubTitleRow2()">＋ 添加副标题</button>
             <input class="merchant-input" id="phone2"     placeholder="电话（反面）" />
             <input class="merchant-input" id="address2"   placeholder="地址（反面）" />
+            <div class="merchant-label" style="margin-top:4px;">促销项目（可多条）</div>
+            <div class="promo-rows" id="promoRows2"></div>
+            <button type="button" class="promo-add-btn" onclick="addPromoRow2()">＋ 添加促销项目</button>
+            <div class="merchant-label" style="margin-top:4px;">叠加图片（LOGO等）</div>
+            <label class="merchant-img-upload-label" id="merchantImgUploadLabel2">
+              <input type="file" id="merchantImgInput2" accept="image/*" multiple style="display:none" onchange="handleMerchantImgUpload2(this)">
+              📎 点击上传图片
+            </label>
+            <div id="merchantImgPreview2" class="merchant-img-preview"></div>
             <div class="merchant-hint">不填则图2只展示图片，不叠加文字</div>
           </div>
         </div>
@@ -903,6 +1275,35 @@
     </div>
   </div>
 
+  <!-- 订单提交弹窗 -->
+  <div class="order-overlay" id="orderOverlay" style="display:none;" onclick="closeOrderModal()">
+    <div class="order-modal" onclick="event.stopPropagation()">
+      <div class="order-modal-header">
+        📋 提交订单
+        <button class="order-modal-close" onclick="closeOrderModal()">✕</button>
+      </div>
+      <div class="order-modal-body">
+        <div class="order-field">
+          <label>规格 <span>*</span></label>
+          <input id="orderSpecs" placeholder="例如：25*25 cm" />
+        </div>
+        <div class="order-field">
+          <label>数量（必须是 500 的整数倍）<span>*</span></label>
+          <input id="orderQty" type="number" step="500" min="500" placeholder="例如：500、1000、2000" />
+        </div>
+        <div class="order-field">
+          <label>淘宝订单编号 <span>*</span></label>
+          <input id="orderNo" placeholder="请输入淘宝订单号" />
+        </div>
+        <div class="order-err" id="orderErr"></div>
+      </div>
+      <div class="order-modal-footer">
+        <button class="order-cancel-btn" onclick="closeOrderModal()">取消</button>
+        <button class="order-confirm-btn" id="orderConfirmBtn" onclick="submitOrder()">确认提交</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 模板选择弹窗 -->
   <div class="tpl-overlay" id="tplOverlay" style="display:none;">
     <div class="tpl-modal">
@@ -916,13 +1317,235 @@
     </div>
   </div>
 
+  <!-- 文字位置编辑器 -->
+  <div class="te-overlay" id="teOverlay" style="display:none;" onclick="closeTextEditor()">
+    <div class="te-modal te-modal-wide" onclick="event.stopPropagation()">
+      <div class="te-header">
+        ✏️ 调整文字与图片
+        <button class="te-header-close" onclick="closeTextEditor()">✕</button>
+      </div>
+      <div class="te-panel-tabs" id="tePanelTabs" style="display:none;">
+        <button class="te-panel-tab active" id="teTabFront" onclick="switchEditorPanel(0)">正面</button>
+        <button class="te-panel-tab" id="teTabBack" onclick="switchEditorPanel(1)">反面</button>
+      </div>
+      <div class="te-desc">点击文字/图片选中后可拖动位置 · 绿色手柄缩放 · 蓝色手柄旋转</div>
+      <div class="te-body">
+        <div class="te-canvas-wrap" id="teCanvasWrap">
+          <canvas id="teCanvas"></canvas>
+        </div>
+        <div class="te-sidebar" id="teSidebar">
+          <div class="te-sidebar-title">文字行</div>
+          <div class="te-line-list" id="teLineList"></div>
+          <div class="te-line-edit" id="teLineEdit" style="display:none;">
+            <div class="te-edit-section">
+              <div class="te-edit-label">字体</div>
+              <select id="teFontFamily" class="te-select">
+                <option value="MSYaHei">微软雅黑</option>
+                <option value="KaiTi">楷体</option>
+                <option value="FangSong">仿宋</option>
+                <option value="SimSun">宋体</option>
+                <option value="STXingkai">行楷</option>
+                <option value="STLiti">隶书</option>
+                <option value="STCaiyun">彩云</option>
+                <option value="STHupo">琥珀</option>
+                <option value="YouYuan">幼圆</option>
+                <option value="SimHei">黑体</option>
+              </select>
+            </div>
+            <div class="te-edit-section">
+              <div class="te-edit-label">字重</div>
+              <select id="teFontWeight" class="te-select">
+                <option value="normal">常规</option>
+                <option value="bold">粗体</option>
+                <option value="500">中等</option>
+                <option value="900">特粗</option>
+              </select>
+            </div>
+            <div class="te-edit-section">
+              <div class="te-edit-label">字号</div>
+              <div class="te-fontsize-row">
+                <input type="range" id="teFontSizeSlider" min="12" max="120" value="40" class="te-fontsize-slider">
+                <input type="number" id="teFontSize" value="40" min="12" max="120" class="te-fontsize-input">
+              </div>
+            </div>
+            <div class="te-edit-section">
+              <div class="te-edit-label">颜色</div>
+              <div class="te-color-row">
+                <input type="color" id="teColor" value="#FFE840" class="te-color-picker">
+                <input type="text" id="teColorHex" value="#FFE840" class="te-color-input">
+              </div>
+            </div>
+            <div class="te-edit-section">
+              <div class="te-edit-label">艺术字</div>
+              <div class="te-art-btns">
+                <button class="te-art-btn" data-art="" title="普通">普通</button>
+                <button class="te-art-btn" data-art="gradient" title="渐变">渐变</button>
+                <button class="te-art-btn" data-art="stroke" title="描边">描边</button>
+                <button class="te-art-btn" data-art="glow" title="发光">发光</button>
+              </div>
+            </div>
+            <div class="te-edit-section">
+              <div class="te-edit-label">描边色</div>
+              <div class="te-color-row">
+                <input type="color" id="teStrokeColor" value="#333333" class="te-color-picker">
+                <input type="text" id="teStrokeColorHex" value="#333333" class="te-color-input">
+              </div>
+            </div>
+            <div class="te-edit-section">
+              <div class="te-edit-label">发光色</div>
+              <div class="te-color-row">
+                <input type="color" id="teGlowColor" value="#FFD700" class="te-color-picker">
+                <input type="text" id="teGlowColorHex" value="#FFD700" class="te-color-input">
+              </div>
+            </div>
+          </div>
+          <div class="te-img-edit" id="teImgEdit" style="display:none;">
+            <div class="te-edit-section">
+              <div class="te-edit-label">宽度 (%)</div>
+              <div class="te-fontsize-row">
+                <input type="range" id="teImgWidthSlider" min="5" max="80" value="20" class="te-fontsize-slider">
+                <input type="number" id="teImgWidth" value="20" min="5" max="80" class="te-fontsize-input">
+              </div>
+            </div>
+            <div class="te-edit-section">
+              <div class="te-edit-label">高度 (%)</div>
+              <div class="te-fontsize-row">
+                <input type="range" id="teImgHeightSlider" min="5" max="80" value="20" class="te-fontsize-slider">
+                <input type="number" id="teImgHeight" value="20" min="5" max="80" class="te-fontsize-input">
+              </div>
+            </div>
+            <div class="te-edit-section">
+              <button id="teImgLockAspect" class="te-art-btn active" onclick="toggleImgAspectLock()" style="width:100%;">锁定比例 ✓</button>
+            </div>
+            <div class="te-edit-section">
+              <button onclick="removeSelectedImage()" style="width:100%;padding:8px;background:#e74c3c;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;">��除此图片</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="te-err" id="teErr"></div>
+      <div class="te-footer">
+        <button class="te-cancel-btn" onclick="closeTextEditor()">取消</button>
+        <button class="te-confirm-btn" id="teConfirmBtn" onclick="confirmTextEdit()">确认重新生成</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    const API = 'http://localhost:5000';
+    const API = 'http://network.ipyingshe.net';
+
+    // 前端文字预览用配色表（与 textOverlay.js 保持同步）
+    const FRONT_PALETTES = {
+      chinese:      { shopGrad:['#FFEEB0','#FF7020','#FFB030','#CC1800'], mainColor:'#FFF3D0', subColor:'#FFD090', contactColor:'rgba(255,240,200,0.92)', outerGlow:'rgba(220,50,0,0.75)',   strokeColor:'rgba(50,5,0,0.88)',  dropShadow:'rgba(120,20,0,0.62)' },
+      illustration: { shopGrad:['#FFE040','#FF6040','#CC40C0','#40A0FF'], mainColor:'#FFF0E8', subColor:'#FFB8A8', contactColor:'rgba(255,240,230,0.92)', outerGlow:'rgba(200,50,200,0.75)', strokeColor:'rgba(50,0,70,0.82)', dropShadow:'rgba(120,20,120,0.58)' },
+      photo:        { shopGrad:['#FFFFFF','#C8C8C8','#F8F8F8','#909090'], mainColor:'#FFFFFF',  subColor:'#DEDEDE', contactColor:'rgba(255,255,255,0.88)', outerGlow:'rgba(0,0,0,0.75)',     strokeColor:'rgba(0,0,0,0.88)',   dropShadow:'rgba(0,0,0,0.62)' },
+      business:     { shopGrad:['#FFFFFF','#60A8E0','#1060C0','#002880'], mainColor:'#EEF8FF',  subColor:'#88C4E8', contactColor:'rgba(210,235,255,0.92)', outerGlow:'rgba(0,50,200,0.72)',  strokeColor:'rgba(0,10,70,0.88)', dropShadow:'rgba(0,20,130,0.62)' },
+      default:      { shopGrad:['#FFFFF0','#FFE840','#FFD700','#A07000'], mainColor:'#FFFAF0',  subColor:'#FFE898', contactColor:'rgba(255,252,230,0.92)', outerGlow:'rgba(190,120,0,0.72)', strokeColor:'rgba(55,25,0,0.88)', dropShadow:'rgba(90,55,0,0.58)' },
+    };
+    const ITEM_COLORS = ['#e0c97f','#74c7ec','#a6e3a1','#fab387','#cba6f7'];
+
     const urlToken = new URLSearchParams(location.search).get('token');
     let sessionInfo = null;
     let expireTimer = null;
+    let merchantUploadedImages  = []; // { id, dataUrl, name } 正面
+    let merchantUploadedImages2 = []; // { id, dataUrl, name } 反面
+
+    function handleMerchantImgUpload(input) {
+      const files = Array.from(input.files || []);
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          merchantUploadedImages.push({ id: Date.now() + Math.random(), dataUrl: e.target.result, name: file.name });
+          renderMerchantImgPreview();
+        };
+        reader.readAsDataURL(file);
+      });
+      input.value = '';
+    }
+
+    function renderMerchantImgPreview() {
+      const el = document.getElementById('merchantImgPreview');
+      if (!el) return;
+      el.innerHTML = merchantUploadedImages.map(img => `
+        <div class="merchant-img-thumb">
+          <img src="${img.dataUrl}" alt="">
+          <button class="merchant-img-remove" onclick="removeMerchantImg(${img.id})">×</button>
+        </div>
+      `).join('');
+    }
+
+    function removeMerchantImg(id) {
+      merchantUploadedImages = merchantUploadedImages.filter(img => img.id !== id);
+      renderMerchantImgPreview();
+    }
+
+    // ── 反面图片上传 ──
+    function handleMerchantImgUpload2(input) {
+      const files = Array.from(input.files || []);
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          merchantUploadedImages2.push({ id: Date.now() + Math.random(), dataUrl: e.target.result, name: file.name });
+          renderMerchantImgPreview2();
+        };
+        reader.readAsDataURL(file);
+      });
+      input.value = '';
+    }
+    function renderMerchantImgPreview2() {
+      const el = document.getElementById('merchantImgPreview2');
+      if (!el) return;
+      el.innerHTML = merchantUploadedImages2.map(img => `
+        <div class="merchant-img-thumb">
+          <img src="${img.dataUrl}" alt="">
+          <button class="merchant-img-remove" onclick="removeMerchantImg2(${img.id})">×</button>
+        </div>
+      `).join('');
+    }
+    function removeMerchantImg2(id) {
+      merchantUploadedImages2 = merchantUploadedImages2.filter(img => img.id !== id);
+      renderMerchantImgPreview2();
+    }
+
+    function addSubTitleRow(val) {
+      const rows = document.getElementById('subTitleRows');
+      if (!rows || rows.children.length >= 6) return;
+      const row = document.createElement('div');
+      row.className = 'promo-row';
+      row.innerHTML = `<input class="merchant-input" placeholder="副标题（如：一颗10元）" maxlength="50" value="${val || ''}" /><button type="button" class="promo-del-btn" onclick="this.parentNode.remove()">×</button>`;
+      rows.appendChild(row);
+    }
+
+    function addSubTitleRow2(val) {
+      const rows = document.getElementById('subTitleRows2');
+      if (!rows || rows.children.length >= 6) return;
+      const row = document.createElement('div');
+      row.className = 'promo-row';
+      row.innerHTML = `<input class="merchant-input" placeholder="副标题（反面）" maxlength="50" value="${val || ''}" /><button type="button" class="promo-del-btn" onclick="this.parentNode.remove()">×</button>`;
+      rows.appendChild(row);
+    }
+
+    function addPromoRow2(val) {
+      const rows = document.getElementById('promoRows2');
+      if (!rows || rows.children.length >= 8) return;
+      const row = document.createElement('div');
+      row.className = 'promo-row';
+      row.innerHTML = `<input class="merchant-input" placeholder="如：免费洁牙 / 开业9折" maxlength="20" value="${val || ''}" /><button type="button" class="promo-del-btn" onclick="this.parentNode.remove()">×</button>`;
+      rows.appendChild(row);
+    }
 
     // ===== Token 验证入口 =====
+    // 加载 AI 助手介绍语
+    fetch(`${API}/api/settings/ai-tagline`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.tagline) {
+          document.getElementById('aiTaglineEl').innerHTML =
+            d.tagline.replace(/\n/g, '<br>');
+        }
+      })
+      .catch(() => {});
+
     async function initPage() {
       if (!urlToken) {
         showGate('no-token');
@@ -1408,6 +2031,11 @@
     /* ═══════════════════════════════════════════════════
        图片生成工具函数
     ═══════════════════════════════════════════════════ */
+    function hasContent(info) {
+      if (!info) return false;
+      return Object.values(info).some(v => v && String(v).trim());
+    }
+
     function escapeHtml(s) {
       return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
@@ -1418,6 +2046,22 @@
       el.innerHTML = `<img src="${src}" alt="预览">`;
       el.addEventListener('click', () => el.remove());
       document.body.appendChild(el);
+    }
+
+    async function triggerDownload(url, filename) {
+      try {
+        const res  = await fetch(url, { mode: 'cors' });
+        const blob = await res.blob();
+        const tmpA = document.createElement('a');
+        tmpA.href     = URL.createObjectURL(blob);
+        tmpA.download = filename;
+        document.body.appendChild(tmpA);
+        tmpA.click();
+        document.body.removeChild(tmpA);
+        setTimeout(() => URL.revokeObjectURL(tmpA.href), 30000);
+      } catch {
+        window.open(url, '_blank');
+      }
     }
 
     // 去除参考图背景（调用后端火山引擎抠图）
@@ -1492,16 +2136,34 @@
     }
 
     // 套扇面模板（调用后端 composite-template）
-    async function compositeWithTemplate(imageUrl, tplUrl, merchantInfo, genStyle = '') {
+    async function compositeWithTemplate(imageUrl, tplUrl, merchantInfo, genStyle = '', imageEls = null) {
+      if (!imageEls) {
+        imageEls = merchantUploadedImages.map((img, idx) => ({
+          src: img.dataUrl, x: Math.max(0.18, 0.82 - idx * 0.20), y: 0.82, width: 0.18, height: null, rotation: 0,
+        }));
+      }
+      const imgEls = imageEls;
       const res  = await fetch(`${API}/api/image/composite-template`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl, templateUrl: tplUrl, merchantInfo, genStyle }),
+        body: JSON.stringify({ imageUrl, templateUrl: tplUrl, merchantInfo, genStyle,
+                               imageElements: imgEls }),
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || '套扇面失败');
       const url = data.images?.[0]?.url;
       if (!url) throw new Error('套扇面未返回图片');
-      return { url, fanBox: data.fanBox || null };
+      return {
+        url,
+        fanBox:            data.fanBox            || null,
+        cleanScaledUrl:    data.cleanScaledUrl    || null,
+        cleanCompositeUrl: data.cleanCompositeUrl || null,
+        bbW:               data.bbW               || null,
+        bbH:               data.bbH               || null,
+        templateUrl:       data.templateUrl       || null,
+        initialFraction:   data.initialFraction != null ? data.initialFraction : null,
+        cdrUrl:            data.cdrUrl            || null,
+        textLines:         data.textLines         || [],
+      };
     }
 
     // 将二维码叠加到扇面合成图
@@ -1719,11 +2381,29 @@
       toggle.classList.toggle('open', open);
     }
 
+    function addPromoRow(val) {
+      const rows = document.getElementById('promoRows');
+      if (rows.children.length >= 8) return;
+      const row = document.createElement('div');
+      row.className = 'promo-row';
+      row.innerHTML = `<input class="merchant-input" placeholder="如：免费洁牙 / 开业9折" maxlength="20" value="${val || ''}" /><button type="button" class="promo-del-btn" onclick="this.parentNode.remove()">×</button>`;
+      rows.appendChild(row);
+    }
+
     function getMerchantInfo(panel) {
       const suffix = (panel === 2) ? '2' : '';
-      const fields = ['shopName', 'mainTitle', 'subTitle', 'phone', 'address'];
+      const fields = ['shopName', 'mainTitle', 'phone', 'address'];
       const info = {};
       fields.forEach(id => { info[id] = document.getElementById(id + suffix)?.value.trim() || ''; });
+      // 收集多条副标题
+      const subTitleSelector = (panel === 2) ? '#subTitleRows2 .promo-row input' : '#subTitleRows .promo-row input';
+      info.subTitles = Array.from(document.querySelectorAll(subTitleSelector))
+        .map(el => el.value.trim()).filter(Boolean);
+      info.subTitle = info.subTitles[0] || ''; // 向后兼容
+      // 收集促销项目
+      const promoSelector = (panel === 2) ? '#promoRows2 .promo-row input' : '#promoRows .promo-row input';
+      info.promoItems = Array.from(document.querySelectorAll(promoSelector))
+        .map(el => el.value.trim()).filter(Boolean);
       return Object.values(info).some(v => v) ? info : null;
     }
 
@@ -1829,8 +2509,8 @@
       return `${w}x${h}`;
     }
 
-    // ── 单次管道：生成并返回一张最终图片 URL ──
-    async function runOnePipeline({ tplUrl, fullScene, qrUrls, qrInstrs, genStyle, merchantInfo, onProgress }) {
+    // ── 单次管道：生成并返回结果对象 { url, cleanScaledUrl, templateUrl, fanBox, initialFraction } ──
+    async function runOnePipeline({ tplUrl, fullScene, qrUrls, qrInstrs, genStyle, merchantInfo, imageElements, onProgress }) {
       if (tplUrl) {
         onProgress('正在生成场景图片，请稍候…');
         const genPrompt = buildEnrichedPrompt(fullScene);
@@ -1848,13 +2528,14 @@
           onProgress('正在处理二维码…');
         }
         onProgress('正在合成到扇面模板，请稍候…');
-        const { url: compositeUrl0, fanBox } = await compositeWithTemplate(imgUrl, tplUrl, merchantInfo, genStyle);
-        let compositeUrl = compositeUrl0;
+        const compResult = await compositeWithTemplate(imgUrl, tplUrl, merchantInfo, genStyle, imageElements || null);
+        let compositeUrl = compResult.url;
+        const { fanBox, cleanScaledUrl, cleanCompositeUrl, bbW, bbH, templateUrl, initialFraction, cdrUrl, textLines } = compResult;
 
         if (qrUrls.length) {
           try { compositeUrl = await compositeQROnFan(compositeUrl, qrUrls, qrInstrs, fanBox); } catch {}
         }
-        return compositeUrl;
+        return { url: compositeUrl, cleanScaledUrl, cleanCompositeUrl, bbW, bbH, templateUrl, fanBox, initialFraction, cdrUrl, textLines };
 
       } else {
         onProgress('正在生成图片，请稍候…');
@@ -1866,12 +2547,13 @@
         const genData = await genRes.json();
         if (!genRes.ok || !genData.images?.[0]) throw new Error(genData.message || '文生图失败');
         let imgUrl = genData.images[0].url;
+        const cdrUrl = genData.images[0].cdrUrl || null;
 
         if (qrUrls.length) {
           onProgress('正在处理二维码…');
           try { imgUrl = await compositeQROnFan(imgUrl, qrUrls, qrInstrs); } catch {}
         }
-        return imgUrl;
+        return { url: imgUrl, cleanScaledUrl: null, cleanCompositeUrl: null, bbW: null, bbH: null, templateUrl: null, fanBox: null, initialFraction: null, cdrUrl };
       }
     }
 
@@ -1927,20 +2609,29 @@
         for (let n = 0; n < count; n++) {
           const prefix = dualMode ? `${['正面', '反面'][n]}：` : '';
           const merchantInfo = getMerchantInfo(dualMode ? n + 1 : undefined);
-          const url = await runOnePipeline({
-            tplUrl, fullScene, qrUrls, qrInstrs, genStyle, merchantInfo,
+          const uploadedImgs = (dualMode && n === 1) ? merchantUploadedImages2 : merchantUploadedImages;
+          const imageElements = uploadedImgs.map((img, idx) => ({
+            src: img.dataUrl, x: Math.max(0.18, 0.82 - idx * 0.20), y: 0.82, width: 0.18, height: null, rotation: 0,
+          }));
+          const result = await runOnePipeline({
+            tplUrl, fullScene, qrUrls, qrInstrs, genStyle, merchantInfo, imageElements,
             onProgress: msg => {
               bubble.innerHTML = prefix + msg + loadingHtml;
               box.scrollTop = box.scrollHeight;
             },
           });
-          results.push(url);
+          // 把当次商家信息快照附在结果上，供编辑器使用
+          result.merchantInfoSnap = merchantInfo;
+          result.textLinesSnap = result.textLines || [];
+          result.imageElementsSnap = imageElements;
+          results.push(result);
         }
 
         if (!dualMode) {
           // 单图展示
-          const url  = results[0];
-          const safe = url.replace(/'/g, "\'");
+          const r0   = results[0];
+          const url  = r0.url;
+          const safe = url.replace(/'/g, "\\'");
           const tip  = tplUrl ? '扇面合成图 · 点击放大' : 'AI 生成图 · 点击放大';
           const fname = tplUrl ? 'fan-result.png' : 'ai-image.png';
           bubble.innerHTML = `
@@ -1949,30 +2640,167 @@
                    alt="${escapeHtml(promptText)}" onclick="openLightbox('${safe}')">
               <div class="msg-img-tip">${tip}</div>
             </div>`;
+          const dlHref = r0.cdrUrl || url;
+          const dlName = r0.cdrUrl ? fname.replace('.png', '.cdr') : fname;
           const dlBtn = document.createElement('a');
           dlBtn.className = 'composite-download-btn';
-          dlBtn.href = url; dlBtn.download = fname;
-          dlBtn.textContent = '⬇ 下载图片';
+          dlBtn.href = '#';
+          dlBtn.dataset.dlUrl  = dlHref;
+          dlBtn.dataset.dlName = dlName;
+          dlBtn.textContent = r0.cdrUrl ? '⬇ 下载 CDR' : '⬇ 下载图片';
+          dlBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await triggerDownload(dlBtn.dataset.dlUrl, dlBtn.dataset.dlName);
+          });
           bubble.appendChild(dlBtn);
+
+          const submitBtn = document.createElement('button');
+          submitBtn.className = 'gen-submit-btn';
+          submitBtn.textContent = '📋 提交订单';
+          submitBtn.addEventListener('click', () => openOrderModal(url, r0.cdrUrl));
+          bubble.appendChild(submitBtn);
+
+          // 编辑文字按钮（仅当有模板 + 商家信息时）
+          if (r0.cleanScaledUrl && hasContent(r0.merchantInfoSnap)) {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'text-edit-btn';
+            editBtn.textContent = '✏️ 编辑文字';
+            const imgEl = bubble.querySelector('img.composite-result-img');
+            editBtn.addEventListener('click', () => openTextEditor({
+              compositeUrl:      r0.url,
+              cleanScaledUrl:    r0.cleanScaledUrl,
+              cleanCompositeUrl: r0.cleanCompositeUrl,
+              bbW:               r0.bbW,
+              bbH:               r0.bbH,
+              templateUrl:       r0.templateUrl,
+              fanBox:            r0.fanBox,
+              initialFraction:   r0.initialFraction,
+              merchantInfo:      r0.merchantInfoSnap,
+              textLines:         r0.textLinesSnap,
+              imageElements:     r0.imageElementsSnap,
+              genStyle,
+              imgEl,
+              dlBtn,
+              submitBtn,
+              editBtnEl: editBtn,
+              bubble,
+            }));
+            bubble.appendChild(editBtn);
+          }
 
         } else {
           // 双图并排展示
           const tip   = tplUrl ? '扇面合成图' : 'AI 生成图';
           const fname = tplUrl ? 'fan-result' : 'ai-image';
-          let html = '<div class="dual-results">';
-          results.forEach((url, i) => {
-            const safe = url.replace(/'/g, "\'");
-            html += `
-              <div class="dual-result-item">
-                <div class="dual-result-label">${['正面', '反面'][i]}</div>
-                <img src="${url}" class="composite-result-img"
-                     alt="${escapeHtml(promptText)}" onclick="openLightbox('${safe}')">
-                <div class="msg-img-tip">${tip} · 点击放大</div>
-                <a class="composite-download-btn" href="${url}" download="${fname}-${['正面', '反面'][i]}.png">⬇ 下载${['正面', '反面'][i]}</a>
-              </div>`;
+          const wrap  = document.createElement('div');
+          wrap.className = 'dual-results';
+          results.forEach((r, i) => {
+            const url   = r.url;
+            const safe  = url.replace(/'/g, "\\'");
+            const label = ['正面', '反面'][i];
+            const item  = document.createElement('div');
+            item.className = 'dual-result-item';
+            item.innerHTML = `
+              <div class="dual-result-label">${label}</div>
+              <img src="${url}" class="composite-result-img"
+                   alt="${escapeHtml(promptText)}" onclick="openLightbox('${safe}')">
+              <div class="msg-img-tip">${tip} · 点击放大</div>`;
+            // 添加自动重试，防止因网络抖动导致图片显示破损
+            {
+              const dualImgEl = item.querySelector('img.composite-result-img');
+              dualImgEl._origUrl = url;
+              dualImgEl._retries = 0;
+              dualImgEl.onerror = function() {
+                if (!this._origUrl || this._retries >= 3) return;
+                this._retries++;
+                const r = this._retries;
+                setTimeout(() => { this.src = this._origUrl + (this._origUrl.includes('?') ? '&' : '?') + '_r=' + r; }, 1500 * r);
+              };
+            }
+            const dlHref2 = r.cdrUrl || url;
+            const dlName2 = r.cdrUrl ? `${fname}-${label}.cdr` : `${fname}-${label}.png`;
+            const dlBtn2 = document.createElement('a');
+            dlBtn2.className = 'composite-download-btn';
+            dlBtn2.href = '#';
+            dlBtn2.dataset.dlUrl  = dlHref2;
+            dlBtn2.dataset.dlName = dlName2;
+            dlBtn2.textContent = r.cdrUrl ? `⬇ 下载${label} CDR` : `⬇ 下载${label}`;
+            dlBtn2.addEventListener('click', async (e) => {
+              e.preventDefault();
+              await triggerDownload(dlBtn2.dataset.dlUrl, dlBtn2.dataset.dlName);
+            });
+            item.appendChild(dlBtn2);
+
+            // 记录本 item 当前的提交 URL，供合并提交按钮读取
+            item.dataset.submitUrl    = url;
+            item.dataset.submitCdrUrl = r.cdrUrl || '';
+            // 隐藏的单面提交按钮，仅供文字编辑器回调更新使用
+            const submitBtn2 = document.createElement('button');
+            submitBtn2.className = 'gen-submit-btn';
+            submitBtn2.style.display = 'none';
+            submitBtn2.addEventListener('click', () => openOrderModal(url, r.cdrUrl));
+            item.appendChild(submitBtn2);
+
+            wrap.appendChild(item);
           });
-          html += '</div>';
-          bubble.innerHTML = html;
+          bubble.innerHTML = '';
+          bubble.appendChild(wrap);
+
+          // 双图合并编辑按钮（一个按钮同时编辑正面+反面）
+          if (results.some(r => r.cleanScaledUrl)) {
+            const itemEls = Array.from(wrap.querySelectorAll('.dual-result-item'));
+            const panelState = results.map(r => ({
+              compositeUrl:      r.url,
+              cleanScaledUrl:    r.cleanScaledUrl,
+              cleanCompositeUrl: r.cleanCompositeUrl,
+              bbW:               r.bbW,
+              bbH:               r.bbH,
+              templateUrl:       r.templateUrl,
+              fanBox:            r.fanBox,
+              merchantInfo:      r.merchantInfoSnap,
+              textLines:         (r.textLinesSnap || []).map(l => Object.assign({}, l)),
+              imageElements:     (r.imageElementsSnap || []).map(e => Object.assign({}, e)),
+              genStyle,
+            }));
+            const dualEditBtn = document.createElement('button');
+            dualEditBtn.className = 'text-edit-btn';
+            dualEditBtn.textContent = '✏️ 编辑正面+反面文字';
+            dualEditBtn.style.cssText = 'display:block;margin:4px auto 0;';
+            dualEditBtn.addEventListener('click', () => {
+              openDualTextEditor({
+                front: Object.assign({}, panelState[0], {
+                  imgEl:     itemEls[0]?.querySelector('img.composite-result-img'),
+                  dlBtn:     itemEls[0]?.querySelector('.composite-download-btn'),
+                  submitBtn: itemEls[0]?.querySelector('.gen-submit-btn'),
+                  bubble:    itemEls[0],
+                }),
+                back: Object.assign({}, panelState[1], {
+                  imgEl:     itemEls[1]?.querySelector('img.composite-result-img'),
+                  dlBtn:     itemEls[1]?.querySelector('.composite-download-btn'),
+                  submitBtn: itemEls[1]?.querySelector('.gen-submit-btn'),
+                  bubble:    itemEls[1],
+                }),
+                dualEditBtn,
+                wrap,
+                panelState,
+              });
+            });
+            bubble.appendChild(dualEditBtn);
+          }
+
+          // 双图合并提交按钮
+          const dualSubmitBtn = document.createElement('button');
+          dualSubmitBtn.className = 'gen-submit-btn';
+          dualSubmitBtn.textContent = '📋 提交正面+反面';
+          dualSubmitBtn.style.cssText = 'display:block;margin:8px auto 0;';
+          dualSubmitBtn.addEventListener('click', () => {
+            const items = wrap.querySelectorAll('.dual-result-item');
+            openOrderModal(
+              items[0]?.dataset.submitUrl,    items[0]?.dataset.submitCdrUrl || null,
+              items[1]?.dataset.submitUrl,    items[1]?.dataset.submitCdrUrl || null
+            );
+          });
+          bubble.appendChild(dualSubmitBtn);
         }
 
         box.scrollTop = box.scrollHeight;
@@ -1992,6 +2820,1682 @@
       if (imageMode) generateImage();
       else sendMessage();
     });
+
+    /* ═══════════════════════════════════════════════════
+        文字位置编辑器（每行独立拖动模式）
+     ═══════════════════════════════════════════════════ */
+    let teState = {};
+
+    const FONT_LIST = [
+      { value: 'MSYaHei', label: '微软雅黑' },
+      { value: 'KaiTi', label: '楷体' },
+      { value: 'FangSong', label: '仿宋' },
+      { value: 'SimSun', label: '宋体' },
+      { value: 'STXingkai', label: '行楷' },
+      { value: 'STLiti', label: '隶书' },
+      { value: 'STCaiyun', label: '彩云' },
+      { value: 'STHupo', label: '琥珀' },
+      { value: 'YouYuan', label: '幼圆' },
+      { value: 'SimHei', label: '黑体' },
+    ];
+
+    function openTextEditor({ compositeUrl, cleanScaledUrl, cleanCompositeUrl,
+                               bbW, bbH, templateUrl, fanBox, initialFraction,
+                               merchantInfo, textLines: providedTextLines,
+                               imageElements: providedImageElements,
+                               genStyle, szMult,
+                               imgEl, dlBtn, submitBtn, editBtnEl, bubble }) {
+      // 单图模式：隐藏面板 Tab
+      document.getElementById('tePanelTabs').style.display = 'none';
+      // 有服务端精确 textLines 时用最终图作背景（与外面生成的图一模一样）
+      // 否则用背景底图（无文字）
+      const bgUrl = (providedTextLines && providedTextLines.length > 0)
+        ? compositeUrl
+        : (cleanCompositeUrl || compositeUrl);
+      const bbWW = bbW || (fanBox.maxX - fanBox.minX);
+      const bbHH = bbH || (fanBox.maxY - fanBox.minY);
+
+      const pal = FRONT_PALETTES[(genStyle || '').toLowerCase()] || FRONT_PALETTES.default;
+      const contact = [merchantInfo.phone, merchantInfo.address].filter(Boolean).join('   ');
+
+      const defaultFontSize = Math.round(bbHH * 0.06);
+
+      teState = {
+        cleanScaledUrl, cleanCompositeUrl, templateUrl, fanBox,
+        bbW: bbWW, bbH: bbHH, merchantInfo, genStyle,
+        imgEl, dlBtn, submitBtn, editBtnEl, bubble,
+        canvasScale: 1, img: null,
+        selectedLineIdx: -1,
+        selectedImageIdx: -1,
+        imgAspectLock: true,
+        isDragging: false,
+        isRotating: false,
+        isResizing: false,
+        dragMode: null,
+        textLines: [],
+        imageElements: [],
+      };
+
+      if (providedTextLines && providedTextLines.length > 0) {
+        teState.textLines = providedTextLines.map((line, idx) => ({
+          id: Date.now() + idx,
+          text: line.text,
+          x: line.x != null ? line.x : 0.5,
+          y: line.y != null ? line.y : 0.5,
+          rotation: line.rotation != null ? line.rotation : 0,
+          fontSize: line.fontSize || defaultFontSize,
+          fontFamily: line.fontFamily || 'MSYaHei',
+          fontWeight: line.fontWeight || 'normal',
+          color: line.color || pal.mainColor,
+          style: line.style || '',
+          artStyle: line.artStyle || '',
+          strokeColor: line.strokeColor || '#333',
+          glowColor: line.glowColor || '#FFD700',
+          colorStops: line.colorStops || null,
+        }));
+      } else {
+        if (merchantInfo.shopName) {
+          teState.textLines.push({
+            id: Date.now(),
+            text: merchantInfo.shopName,
+            x: 0.5, y: 0.38,
+            rotation: 0,
+            fontSize: Math.round(defaultFontSize * 1.4),
+            fontFamily: 'KaiTi',
+            fontWeight: 'bold',
+            color: '#FFE840',
+            style: 'shopgrad',
+            artStyle: '',
+            strokeColor: '#333',
+            glowColor: '#FFD700',
+            colorStops: pal.shopGrad,
+          });
+        }
+        if (merchantInfo.mainTitle) {
+          teState.textLines.push({
+            id: Date.now() + 1,
+            text: merchantInfo.mainTitle,
+            x: 0.5, y: 0.48,
+            rotation: 0,
+            fontSize: Math.round(defaultFontSize * 1.2),
+            fontFamily: 'MSYaHei',
+            fontWeight: 'bold',
+            color: pal.mainColor,
+            style: 'main',
+            artStyle: '',
+            strokeColor: '#333',
+            glowColor: '#FFD700',
+          });
+        }
+        const subTitles = (merchantInfo.subTitles && merchantInfo.subTitles.length > 0)
+          ? merchantInfo.subTitles
+          : (merchantInfo.subTitle ? [merchantInfo.subTitle] : []);
+        subTitles.forEach((st, stIdx) => {
+          teState.textLines.push({
+            id: Date.now() + 2 + stIdx,
+            text: st,
+            x: 0.5, y: 0.55 + stIdx * 0.06,
+            rotation: 0,
+            fontSize: defaultFontSize,
+            fontFamily: 'MSYaHei',
+            fontWeight: 'normal',
+            color: pal.subColor,
+            style: 'sub',
+            artStyle: '',
+            strokeColor: '#333',
+            glowColor: '#FFD700',
+          });
+        });
+        // 促销项目：每条单独一个可拖拽文字块
+        const promoBaseY = subTitles.length > 0 ? 0.55 + subTitles.length * 0.06 + 0.02 : 0.60;
+        const promoItems = merchantInfo.promoItems || [];
+        promoItems.slice(0, 8).forEach((item, i) => {
+          const cols = promoItems.length >= 3 ? 2 : 1;
+          const col  = cols === 2 ? i % 2 : 0;
+          const row  = cols === 2 ? Math.floor(i / 2) : i;
+          const xPos = cols === 2 ? (col === 0 ? 0.28 : 0.72) : 0.5;
+          const yPos = promoBaseY + row * 0.07;
+          teState.textLines.push({
+            id: Date.now() + 10 + i,
+            text: `${i + 1}. ${item}`,
+            x: xPos, y: yPos,
+            rotation: 0,
+            fontSize: Math.round(defaultFontSize * 0.75),
+            fontFamily: 'MSYaHei',
+            fontWeight: 'bold',
+            color: '#1a1a2e',
+            style: 'promo',
+            artStyle: '',
+            strokeColor: '#ffffff',
+            glowColor: '#FFD700',
+          });
+        });
+
+        if (contact) {
+          const promoRows = promoItems.length >= 3 ? Math.ceil(promoItems.length / 2) : promoItems.length;
+          const contactY  = Math.min(promoBaseY + promoRows * 0.07 + 0.04, 0.92);
+          teState.textLines.push({
+            id: Date.now() + 3,
+            text: contact,
+            x: 0.5, y: contactY,
+            rotation: 0,
+            fontSize: Math.round(defaultFontSize * 0.75),
+            fontFamily: 'MSYaHei',
+            fontWeight: 'normal',
+            color: pal.contactColor,
+            style: 'contact',
+            artStyle: '',
+            strokeColor: '#333',
+            glowColor: '#FFD700',
+          });
+        }
+      }
+
+      // Initialize imageElements
+      const srcImages = (providedImageElements && providedImageElements.length > 0)
+        ? providedImageElements
+        : merchantUploadedImages.map((img, idx) => ({
+            id: img.id, src: img.dataUrl, name: img.name,
+            x: Math.max(0.18, 0.82 - idx * 0.20), y: 0.82, width: 0.18, height: null, rotation: 0,
+          }));
+      teState.imageElements = srcImages.map((el, idx) => ({
+        id: el.id || Date.now() + idx,
+        src: el.src || el.dataUrl,
+        x: el.x != null ? el.x : Math.max(0.18, 0.82 - idx * 0.20),
+        y: el.y != null ? el.y : 0.82,
+        width: el.width != null ? el.width : 0.18,
+        height: el.height != null ? el.height : null,
+        rotation: el.rotation || 0,
+        imgObj: null,
+        _naturalAspect: null,
+      }));
+
+      document.getElementById('teErr').textContent = '';
+      document.getElementById('teConfirmBtn').disabled = false;
+      document.getElementById('teConfirmBtn').textContent = '确认重新生成';
+
+      renderLineList();
+      updateLineEditPanel();
+
+      const wrap = document.getElementById('teCanvasWrap');
+      const _editorSession = teState;   // 捕获当前 teState 引用，用于检测回调是否过期
+      const img  = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        requestAnimationFrame(() => {
+          if (teState !== _editorSession) return;  // 编辑器已被关闭或重新打开，丢弃过期回调
+          const maxW   = (wrap.clientWidth || 900) - 16;
+          const maxH   = window.innerHeight * 0.82;
+          const scale  = Math.min(1, maxW / bbWW, maxH / bbHH);
+          const canvas = document.getElementById('teCanvas');
+          canvas.width  = Math.round(bbWW * scale);
+          canvas.height = Math.round(bbHH * scale);
+          teState.img = img;
+          teState.canvasScale = scale;
+          teState.fanBoxD = { minX: 0, minY: 0, maxX: canvas.width, maxY: canvas.height };
+          // Preload image elements
+          const loadPromises = (teState.imageElements || []).map(el => new Promise(resolve => {
+            const imgObj = new Image();
+            imgObj.onload = () => {
+              el.imgObj = imgObj;
+              el._naturalAspect = imgObj.naturalWidth / imgObj.naturalHeight;
+              // Auto-compute height if not set (preserve natural aspect ratio)
+              if (el.height == null) {
+                const cAspect = canvas.width / canvas.height;
+                el.height = el.width * cAspect / el._naturalAspect;
+              }
+              resolve();
+            };
+            imgObj.onerror = resolve;
+            imgObj.src = el.src;
+          }));
+          Promise.all(loadPromises).then(() => {
+            if (teState !== _editorSession) return;
+            renderLineList();
+            drawEditor();
+          });
+        });
+      };
+      img.onerror = () => {
+        document.getElementById('teErr').textContent = '图片加载失败，请稍后重试';
+      };
+      img.src = bgUrl;
+      document.getElementById('teOverlay').style.display = 'flex';
+    }
+
+    function renderLineList() {
+      const listEl = document.getElementById('teLineList');
+      const colors = ['#FF7F50', '#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#00BCD4'];
+
+      const textHtml = teState.textLines.map((line, idx) => {
+        const dotColor = line.color || colors[idx % colors.length];
+        const posText = `(${Math.round(line.x * 100)}%, ${Math.round(line.y * 100)}%)`;
+        return `
+          <div class="te-line-item ${teState.selectedLineIdx === idx ? 'selected' : ''}" data-type="text" data-idx="${idx}">
+            <div class="te-line-dot" style="background:${dotColor}"></div>
+            <div class="te-line-text">${escapeHtml(line.text)}</div>
+            <div class="te-line-pos">${posText}</div>
+          </div>
+        `;
+      }).join('');
+
+      const imgHtml = (teState.imageElements || []).map((el, idx) => {
+        const posText = `(${Math.round(el.x * 100)}%, ${Math.round(el.y * 100)}%)`;
+        const thumb = el.src ? `<img src="${el.src}" style="width:20px;height:20px;object-fit:contain;border-radius:3px;flex-shrink:0;">` : `<div class="te-line-dot" style="background:#aaa;"></div>`;
+        return `
+          <div class="te-line-item ${teState.selectedImageIdx === idx ? 'selected' : ''}" data-type="image" data-idx="${idx}">
+            ${thumb}
+            <div class="te-line-text">图片 ${idx + 1}</div>
+            <div class="te-line-pos">${posText}</div>
+          </div>
+        `;
+      }).join('');
+
+      listEl.innerHTML = textHtml + imgHtml;
+
+      listEl.querySelectorAll('.te-line-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const idx = parseInt(item.dataset.idx);
+          if (item.dataset.type === 'image') {
+            teState.selectedImageIdx = idx;
+            teState.selectedLineIdx = -1;
+          } else {
+            teState.selectedLineIdx = idx;
+            teState.selectedImageIdx = -1;
+          }
+          renderLineList();
+          updateLineEditPanel();
+          drawEditor();
+        });
+      });
+    }
+
+    function updateLineEditPanel() {
+      const editEl    = document.getElementById('teLineEdit');
+      const imgEditEl = document.getElementById('teImgEdit');
+
+      // Show image edit panel
+      if (teState.selectedImageIdx >= 0 && teState.selectedImageIdx < (teState.imageElements || []).length) {
+        editEl.style.display = 'none';
+        imgEditEl.style.display = 'block';
+        const el = teState.imageElements[teState.selectedImageIdx];
+        const wPct = Math.round((el.width || 0.18) * 100);
+        const hPct = Math.round((el.height || 0.18) * 100);
+        document.getElementById('teImgWidth').value = wPct;
+        document.getElementById('teImgWidthSlider').value = wPct;
+        document.getElementById('teImgHeight').value = hPct;
+        document.getElementById('teImgHeightSlider').value = hPct;
+        const lockBtn = document.getElementById('teImgLockAspect');
+        if (lockBtn) lockBtn.classList.toggle('active', teState.imgAspectLock !== false);
+        return;
+      }
+      imgEditEl.style.display = 'none';
+
+      // Show text edit panel
+      if (teState.selectedLineIdx < 0 || teState.selectedLineIdx >= teState.textLines.length) {
+        editEl.style.display = 'none';
+        return;
+      }
+      editEl.style.display = 'block';
+      const line = teState.textLines[teState.selectedLineIdx];
+
+      document.getElementById('teFontFamily').value = line.fontFamily || 'MSYaHei';
+      document.getElementById('teFontWeight').value = line.fontWeight || 'normal';
+      const fs = line.fontSize || 40;
+      document.getElementById('teFontSize').value = fs;
+      document.getElementById('teFontSizeSlider').value = Math.min(120, Math.max(12, fs));
+      document.getElementById('teColor').value = line.color || '#FFE840';
+      document.getElementById('teColorHex').value = line.color || '#FFE840';
+      document.getElementById('teStrokeColor').value = line.strokeColor || '#333333';
+      document.getElementById('teStrokeColorHex').value = line.strokeColor || '#333333';
+      document.getElementById('teGlowColor').value = line.glowColor || '#FFD700';
+      document.getElementById('teGlowColorHex').value = line.glowColor || '#FFD700';
+
+      document.querySelectorAll('.te-art-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.art === (line.artStyle || ''));
+      });
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function drawEditor() {
+      const canvas = document.getElementById('teCanvas');
+      const ctx    = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (!teState.img) return;
+
+      const fb_orig = teState.fanBox;
+      const bbW  = teState.bbW;
+      const bbH  = teState.bbH;
+      ctx.drawImage(teState.img, fb_orig.minX, fb_orig.minY, bbW, bbH, 0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = 'rgba(224,201,127,0.15)';
+      ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+      ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+      ctx.setLineDash([]);
+
+      const pal = FRONT_PALETTES[(teState.genStyle || '').toLowerCase()] || FRONT_PALETTES.default;
+
+      teState.textLines.forEach((line, idx) => {
+        const x = line.x * canvas.width;
+        const y = line.y * canvas.height;
+        const fs = Math.round(line.fontSize * teState.canvasScale);
+
+        ctx.save();
+        if (line.rotation !== 0) {
+          ctx.translate(x, y);
+          ctx.rotate(line.rotation * Math.PI / 180);
+          ctx.translate(-x, -y);
+        }
+
+        ctx.font = `${line.fontWeight || 'normal'} ${fs}px "${line.fontFamily || 'MSYaHei'}", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineJoin = 'round';
+
+        // ── 促销项目：白色卡片 + 圆形序号徽章 + 文字，整体拖动 ──────────────
+        if (line.style === 'promo') {
+          const m = line.text.match(/^(\d+)\.\s*(.*)/);
+          const badgeNum = m ? m[1] : '';
+          const itemText = m ? m[2] : line.text;
+
+          ctx.font = `bold ${fs}px "${line.fontFamily || 'MSYaHei'}", sans-serif`;
+          const itemMetrics = ctx.measureText(itemText);
+          const promoCardH = Math.round(fs * 2.2);
+          const badgeR     = Math.round(promoCardH * 0.28);
+          const badgeAreaW = badgeR * 2 + Math.round(promoCardH * 0.3);
+          const promoCardW = Math.min(itemMetrics.width + badgeAreaW + fs * 0.8, canvas.width * 0.82);
+
+          // 白色背景盒子
+          ctx.fillStyle = 'rgba(255,255,255,0.90)';
+          ctx.strokeStyle = '#e0c97f';
+          ctx.lineWidth = Math.max(1, Math.round(fs * 0.04));
+          ctx.beginPath();
+          ctx.roundRect(x - promoCardW / 2, y - promoCardH / 2, promoCardW, promoCardH, Math.round(promoCardH * 0.18));
+          ctx.fill(); ctx.stroke();
+
+          // 顶部金色高光条
+          const hlG = ctx.createLinearGradient(x - promoCardW / 2, y, x + promoCardW / 2, y);
+          hlG.addColorStop(0, 'rgba(224,201,127,0)');
+          hlG.addColorStop(0.5, 'rgba(224,201,127,0.8)');
+          hlG.addColorStop(1, 'rgba(224,201,127,0)');
+          ctx.fillStyle = hlG;
+          ctx.fillRect(x - promoCardW / 2 + 3, y - promoCardH / 2, promoCardW - 6, Math.round(promoCardH * 0.07));
+
+          // 圆形序号徽章
+          const badgeCX = x - promoCardW / 2 + badgeR + Math.round(promoCardH * 0.12);
+          ctx.beginPath(); ctx.arc(badgeCX, y, badgeR, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(200,50,0,0.75)'; ctx.fill();
+          ctx.strokeStyle = '#e0c97f';
+          ctx.lineWidth = Math.max(1, Math.round(badgeR * 0.15)); ctx.stroke();
+          ctx.font = `bold ${Math.round(badgeR * 1.05)}px "${line.fontFamily || 'MSYaHei'}", sans-serif`;
+          ctx.fillStyle = '#FFE840'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(badgeNum, badgeCX, y);
+
+          // 促销文字（左对齐，深色）
+          const textX    = badgeCX + badgeR + Math.round(promoCardH * 0.1);
+          const textMaxW = promoCardW - (textX - (x - promoCardW / 2)) - Math.round(promoCardH * 0.08);
+          ctx.font = `bold ${fs}px "${line.fontFamily || 'MSYaHei'}", sans-serif`;
+          ctx.fillStyle = '#1a1a2e'; ctx.textAlign = 'left';
+          ctx.fillText(itemText, textX, y, textMaxW);
+
+          ctx.restore();
+
+          // 选中框（整个卡片区域）
+          if (teState.selectedLineIdx === idx) {
+            const tw = promoCardW + 6, th = promoCardH + 6;
+            ctx.save();
+            if (line.rotation !== 0) {
+              ctx.translate(x, y); ctx.rotate(line.rotation * Math.PI / 180); ctx.translate(-x, -y);
+            }
+            ctx.strokeStyle = '#e0c97f'; ctx.lineWidth = 2;
+            ctx.setLineDash([5, 3]);
+            ctx.strokeRect(x - tw / 2, y - th / 2, tw, th);
+            ctx.setLineDash([]);
+            ctx.beginPath(); ctx.moveTo(x, y + th / 2); ctx.lineTo(x, y + th / 2 + 25);
+            ctx.strokeStyle = '#e0c97f'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.beginPath(); ctx.arc(x, y + th / 2 + 25, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#e0c97f'; ctx.fill();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x - 4, y + th / 2 + 25); ctx.lineTo(x + 4, y + th / 2 + 25);
+            ctx.moveTo(x, y + th / 2 + 21);      ctx.lineTo(x, y + th / 2 + 29);
+            ctx.strokeStyle = '#1a1a2e'; ctx.lineWidth = 1.5; ctx.stroke();
+            ctx.restore();
+          }
+          return; // forEach 提前返回，跳过下方普通文字渲染
+        }
+        // ────────────────────────────────────────────────────────────────
+
+        const sw = Math.max(1, Math.round(fs * 0.08));
+
+        if (line.artStyle === 'stroke') {
+          ctx.strokeStyle = line.strokeColor || '#333';
+          ctx.lineWidth = Math.max(2, fs * 0.12);
+          ctx.strokeText(line.text, x, y);
+        }
+
+        if (line.artStyle === 'glow') {
+          ctx.strokeStyle = line.glowColor || '#FFD700';
+          ctx.lineWidth = sw * 3;
+          ctx.shadowColor = line.glowColor || '#FFD700';
+          ctx.shadowBlur = fs * 0.5;
+          ctx.strokeText(line.text, x, y);
+          ctx.shadowBlur = 0;
+        }
+
+        // promo 项目白色底上不加黑色描边，其他文字保留描边
+        if (line.style !== 'promo') {
+          ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+          ctx.lineWidth = Math.max(1, sw * 0.5);
+          ctx.strokeText(line.text, x, y);
+        }
+
+        let fillStyle = line.style === 'promo' ? '#1a1a2e' : (line.color || '#FFE840');
+        if (line.style === 'shopgrad' || line.artStyle === 'gradient') {
+          const stops = line.colorStops || pal.shopGrad || ['#FFE840', '#FF7020'];
+          const grad = ctx.createLinearGradient(0, y - fs/2, 0, y + fs/2);
+          stops.forEach((c, i) => grad.addColorStop(i / (stops.length - 1), c));
+          fillStyle = grad;
+        }
+
+        ctx.fillStyle = fillStyle;
+        ctx.shadowColor = line.style === 'promo' ? 'transparent' : 'rgba(0,0,0,0.4)';
+        ctx.shadowBlur = line.style === 'promo' ? 0 : fs * 0.1;
+        ctx.fillText(line.text, x, y);
+        ctx.shadowBlur = 0;
+
+        ctx.restore();
+
+        if (teState.selectedLineIdx === idx) {
+          const metrics = ctx.measureText(line.text);
+          const tw = Math.min(metrics.width + 20, canvas.width * 0.8);
+          const th = fs * 1.5;
+
+          ctx.save();
+          if (line.rotation !== 0) {
+            ctx.translate(x, y);
+            ctx.rotate(line.rotation * Math.PI / 180);
+            ctx.translate(-x, -y);
+          }
+
+          ctx.strokeStyle = '#e0c97f';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 3]);
+          ctx.strokeRect(x - tw/2, y - th/2, tw, th);
+          ctx.setLineDash([]);
+
+          ctx.beginPath();
+          ctx.moveTo(x, y + th/2);
+          ctx.lineTo(x, y + th/2 + 25);
+          ctx.strokeStyle = '#e0c97f';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(x, y + th/2 + 25, 8, 0, Math.PI * 2);
+          ctx.fillStyle = '#e0c97f';
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(x - 4, y + th/2 + 25);
+          ctx.lineTo(x + 4, y + th/2 + 25);
+          ctx.moveTo(x, y + th/2 + 21);
+          ctx.lineTo(x, y + th/2 + 29);
+          ctx.strokeStyle = '#1a1a2e';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          ctx.restore();
+        }
+      });
+
+      // Draw image elements
+      (teState.imageElements || []).forEach((el, idx) => {
+        if (!el.imgObj) return;
+        const cx = el.x * canvas.width;
+        const cy = el.y * canvas.height;
+        const w  = (el.width  || 0.18) * canvas.width;
+        const h  = (el.height || 0.18) * canvas.height;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        if (el.rotation) ctx.rotate(el.rotation * Math.PI / 180);
+        ctx.drawImage(el.imgObj, -w / 2, -h / 2, w, h);
+
+        if (teState.selectedImageIdx === idx) {
+          // Selection dashed box
+          ctx.strokeStyle = '#74c7ec';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 3]);
+          ctx.strokeRect(-w / 2, -h / 2, w, h);
+          ctx.setLineDash([]);
+
+          // Rotation handle (bottom center)
+          ctx.restore();
+          ctx.save();
+          ctx.translate(cx, cy);
+          if (el.rotation) ctx.rotate(el.rotation * Math.PI / 180);
+          ctx.beginPath();
+          ctx.moveTo(0, h / 2);
+          ctx.lineTo(0, h / 2 + 25);
+          ctx.strokeStyle = '#74c7ec';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(0, h / 2 + 25, 8, 0, Math.PI * 2);
+          ctx.fillStyle = '#74c7ec';
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Resize handle (bottom-right corner, unrotated for simplicity)
+          ctx.restore();
+          const rhx = cx + w / 2;
+          const rhy = cy + h / 2;
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(rhx, rhy, 7, 0, Math.PI * 2);
+          ctx.fillStyle = '#a6e3a1';
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          // draw resize arrows indicator
+          ctx.strokeStyle = '#1a1a2e';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(rhx - 3, rhy - 3); ctx.lineTo(rhx + 3, rhy + 3);
+          ctx.moveTo(rhx + 3, rhy - 1); ctx.lineTo(rhx + 3, rhy + 3); ctx.lineTo(rhx - 1, rhy + 3);
+          ctx.stroke();
+        } else {
+          ctx.restore();
+          return;
+        }
+        ctx.restore();
+      });
+    }
+
+    function closeTextEditor() {
+      document.getElementById('teOverlay').style.display = 'none';
+      document.getElementById('tePanelTabs').style.display = 'none';
+      teState = {};
+    }
+
+    // ── 将当前 teState 的编辑状态保存回 panels[idx] ──────────────────────
+    function savePanelState(idx) {
+      if (!teState.isDual) return;
+      teState.panels[idx] = {
+        compositeUrl:      teState._compositeUrl,
+        cleanScaledUrl:    teState.cleanScaledUrl,
+        cleanCompositeUrl: teState.cleanCompositeUrl,
+        templateUrl:       teState.templateUrl,
+        fanBox:            teState.fanBox,
+        bbW:               teState.bbW,
+        bbH:               teState.bbH,
+        merchantInfo:      teState.merchantInfo,
+        genStyle:          teState.genStyle,
+        imgEl:             teState.imgEl,
+        dlBtn:             teState.dlBtn,
+        submitBtn:         teState.submitBtn,
+        editBtnEl:         teState.editBtnEl,
+        bubble:            teState.bubble,
+        textLines:         teState.textLines,
+        imageElements:     teState.imageElements,
+        img:               teState.img,
+        canvasScale:       teState.canvasScale,
+        selectedLineIdx:   teState.selectedLineIdx,
+        selectedImageIdx:  teState.selectedImageIdx,
+      };
+    }
+
+    // ── 切换正面/反面面板 ────────────────────────────────────────────────
+    function switchEditorPanel(idx) {
+      if (!teState.isDual || idx === teState.activePanelIdx) return;
+      savePanelState(teState.activePanelIdx);
+
+      const next = teState.panels[idx];
+      teState.activePanelIdx    = idx;
+      teState._compositeUrl     = next.compositeUrl;
+      teState.cleanScaledUrl    = next.cleanScaledUrl;
+      teState.cleanCompositeUrl = next.cleanCompositeUrl;
+      teState.templateUrl       = next.templateUrl;
+      teState.fanBox            = next.fanBox;
+      teState.bbW               = next.bbW;
+      teState.bbH               = next.bbH;
+      teState.merchantInfo      = next.merchantInfo;
+      teState.genStyle          = next.genStyle;
+      teState.imgEl             = next.imgEl;
+      teState.dlBtn             = next.dlBtn;
+      teState.submitBtn         = next.submitBtn;
+      teState.editBtnEl         = next.editBtnEl;
+      teState.bubble            = next.bubble;
+      teState.textLines         = next.textLines || [];
+      teState.imageElements     = next.imageElements || [];
+      teState.canvasScale       = next.canvasScale || 1;
+      teState.selectedLineIdx   = next.selectedLineIdx != null ? next.selectedLineIdx : -1;
+      teState.selectedImageIdx  = next.selectedImageIdx != null ? next.selectedImageIdx : -1;
+
+      // 更新 Tab 高亮
+      document.getElementById('teTabFront').classList.toggle('active', idx === 0);
+      document.getElementById('teTabBack').classList.toggle('active',  idx === 1);
+
+      const canvas = document.getElementById('teCanvas');
+      const wrap   = document.getElementById('teCanvasWrap');
+      const _sess  = teState;
+
+      if (next.img) {
+        // 已加载过，直接复用
+        teState.img = next.img;
+        const maxW  = (wrap.clientWidth || 900) - 16;
+        const maxH  = window.innerHeight * 0.82;
+        const scale = Math.min(1, maxW / next.bbW, maxH / next.bbH);
+        canvas.width  = Math.round(next.bbW * scale);
+        canvas.height = Math.round(next.bbH * scale);
+        teState.canvasScale = scale;
+        renderLineList(); updateLineEditPanel(); drawEditor();
+      } else {
+        // 首次切换到该面板，加载背景图
+        const bgUrl = (next.textLines && next.textLines.length > 0)
+          ? (next.compositeUrl || next.cleanCompositeUrl || next.cleanScaledUrl)
+          : (next.cleanCompositeUrl || next.cleanScaledUrl);
+        const img = new Image(); img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          if (teState !== _sess) return;
+          const maxW  = (wrap.clientWidth || 900) - 16;
+          const maxH  = window.innerHeight * 0.82;
+          const scale = Math.min(1, maxW / next.bbW, maxH / next.bbH);
+          canvas.width  = Math.round(next.bbW * scale);
+          canvas.height = Math.round(next.bbH * scale);
+          teState.img = img; teState.canvasScale = scale;
+          const loads = (teState.imageElements || []).map(el => new Promise(res => {
+            if (!el.src) { res(); return; }
+            const im = new Image(); im.crossOrigin = 'anonymous';
+            im.onload = () => { el.imgObj = im; el._naturalAspect = im.naturalWidth / im.naturalHeight; res(); };
+            im.onerror = () => res(); im.src = el.src;
+          }));
+          Promise.all(loads).then(() => {
+            if (teState !== _sess) return;
+            renderLineList(); updateLineEditPanel(); drawEditor();
+          });
+        };
+        img.onerror = () => console.error('面板切换图片加载失败', bgUrl);
+        img.src = bgUrl || '';
+      }
+    }
+
+    // ── 双图模式：打开同时编辑正面+反面的编辑器 ─────────────────────────
+    function openDualTextEditor({ front, back, dualEditBtn, wrap, panelState = null }) {
+      // 先用正面数据打开编辑器（复用现有逻辑）
+      openTextEditor(front);
+      // 保存正面的 compositeUrl 供切换时使用
+      teState._compositeUrl = front.compositeUrl || front.cleanCompositeUrl;
+
+      // 初始化反面的 textLines
+      const backPal = FRONT_PALETTES[(back.genStyle || '').toLowerCase()] || FRONT_PALETTES.default;
+      const backDfs = Math.round((back.bbH || 400) * 0.06);
+      let backTextLines = [];
+      if (back.textLines && back.textLines.length > 0) {
+        backTextLines = back.textLines.map((ln, i) => ({
+          id: Date.now() + 2000 + i,
+          text: ln.text, x: ln.x ?? 0.5, y: ln.y ?? 0.5, rotation: ln.rotation ?? 0,
+          fontSize: ln.fontSize || backDfs, fontFamily: ln.fontFamily || 'MSYaHei',
+          fontWeight: ln.fontWeight || 'normal', color: ln.color || backPal.mainColor,
+          style: ln.style || '', artStyle: ln.artStyle || '',
+          strokeColor: ln.strokeColor || '#333', glowColor: ln.glowColor || '#FFD700',
+          colorStops: ln.colorStops || null,
+        }));
+      } else if (back.merchantInfo) {
+        const mi = back.merchantInfo;
+        const contact = [mi.phone, mi.address].filter(Boolean).join('   ');
+        if (mi.shopName) backTextLines.push({ id: Date.now()+2001, text: mi.shopName, x:0.5,y:0.38,rotation:0, fontSize:Math.round(backDfs*1.4),fontFamily:'KaiTi',fontWeight:'bold',color:'#FFE840',style:'shopgrad',artStyle:'',strokeColor:'#333',glowColor:'#FFD700',colorStops:backPal.shopGrad });
+        if (mi.mainTitle) backTextLines.push({ id:Date.now()+2002,text:mi.mainTitle,x:0.5,y:0.48,rotation:0,fontSize:Math.round(backDfs*1.2),fontFamily:'MSYaHei',fontWeight:'bold',color:backPal.mainColor,style:'main',artStyle:'',strokeColor:'#333',glowColor:'#FFD700' });
+        const backSubTitles = (mi.subTitles && mi.subTitles.length > 0) ? mi.subTitles : (mi.subTitle ? [mi.subTitle] : []);
+        backSubTitles.forEach((st, stIdx) => { backTextLines.push({ id:Date.now()+2003+stIdx,text:st,x:0.5,y:0.55+stIdx*0.06,rotation:0,fontSize:backDfs,fontFamily:'MSYaHei',fontWeight:'normal',color:backPal.subColor,style:'sub',artStyle:'',strokeColor:'#333',glowColor:'#FFD700' }); });
+        const backPromoBaseY = backSubTitles.length > 0 ? 0.55 + backSubTitles.length * 0.06 + 0.02 : 0.60;
+        const promos = mi.promoItems || [];
+        promos.slice(0,8).forEach((item,i) => {
+          const cols = promos.length >= 3 ? 2 : 1, col = cols===2 ? i%2 : 0, row = cols===2 ? Math.floor(i/2) : i;
+          backTextLines.push({ id:Date.now()+2010+i, text:`${i+1}. ${item}`, x:cols===2?(col===0?0.28:0.72):0.5, y:backPromoBaseY+row*0.07, rotation:0, fontSize:Math.round(backDfs*0.75),fontFamily:'MSYaHei',fontWeight:'bold',color:'#1a1a2e',style:'promo',artStyle:'',strokeColor:'#ffffff',glowColor:'#FFD700' });
+        });
+        if (contact) { const pRows = promos.length>=3?Math.ceil(promos.length/2):promos.length; backTextLines.push({ id:Date.now()+2004,text:contact,x:0.5,y:Math.min(backPromoBaseY+pRows*0.07+0.04,0.92),rotation:0,fontSize:Math.round(backDfs*0.75),fontFamily:'MSYaHei',fontWeight:'normal',color:backPal.contactColor,style:'contact',artStyle:'',strokeColor:'#333',glowColor:'#FFD700' }); }
+      }
+
+      // 初始化反面的 imageElements
+      let backImageElements = [];
+      if (back.imageElements && back.imageElements.length > 0) {
+        backImageElements = back.imageElements.map((el, i) => ({
+          id: el.id || Date.now()+3000+i, src: el.src || el.dataUrl,
+          x: el.x ?? Math.max(0.18, 0.82-i*0.20), y: el.y ?? 0.82,
+          width: el.width ?? 0.18, height: el.height ?? null, rotation: el.rotation || 0,
+          imgObj: null, _naturalAspect: null,
+        }));
+      }
+
+      // 设置双图模式标志
+      teState.isDual        = true;
+      teState.activePanelIdx = 0;
+      teState._dualEditBtn  = dualEditBtn;
+      teState._dualWrap     = wrap;
+      teState._panelState   = panelState;
+      teState.panels        = [
+        null, // panel 0 会在切换时由 savePanelState 填充
+        {
+          compositeUrl:      back.compositeUrl || back.cleanCompositeUrl,
+          cleanScaledUrl:    back.cleanScaledUrl,
+          cleanCompositeUrl: back.cleanCompositeUrl,
+          templateUrl:       back.templateUrl,
+          fanBox:            back.fanBox,
+          bbW:               back.bbW || 400,
+          bbH:               back.bbH || 400,
+          merchantInfo:      back.merchantInfo,
+          genStyle:          back.genStyle,
+          imgEl:             back.imgEl,
+          dlBtn:             back.dlBtn,
+          submitBtn:         back.submitBtn,
+          editBtnEl:         dualEditBtn,
+          bubble:            back.bubble || wrap,
+          textLines:         backTextLines,
+          imageElements:     backImageElements,
+          img:               null, canvasScale: 1,
+          selectedLineIdx: -1, selectedImageIdx: -1,
+        },
+      ];
+
+      // 显示 Tab 栏
+      document.getElementById('tePanelTabs').style.display = 'flex';
+      document.getElementById('teTabFront').classList.add('active');
+      document.getElementById('teTabBack').classList.remove('active');
+    }
+
+    (function setupEditorEvents() {
+      const canvas = document.getElementById('teCanvas');
+
+      function getXY(e) {
+        const rect = canvas.getBoundingClientRect();
+        const src  = e.touches ? e.touches[0] : e;
+        return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+      }
+
+      function getCanvasXY(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: (clientX - rect.left) / canvas.width,
+          y: (clientY - rect.top) / canvas.height
+        };
+      }
+
+      function hitTestRotationHandle(px, py) {
+        if (teState.selectedLineIdx < 0) return false;
+        const line = teState.textLines[teState.selectedLineIdx];
+        const x = line.x * canvas.width;
+        const y = line.y * canvas.height;
+        const fs = Math.round(line.fontSize * teState.canvasScale);
+        const hx = x;
+        const hy = y + fs * 0.75 + 25;
+        const dist = Math.hypot(px - hx, py - hy);
+        return dist < 15;
+      }
+
+      function calcRotation(px, py) {
+        if (teState.selectedLineIdx < 0) return 0;
+        const line = teState.textLines[teState.selectedLineIdx];
+        const x = line.x * canvas.width;
+        const y = line.y * canvas.height;
+        const angle = Math.atan2(py - y, px - x) * 180 / Math.PI + 90;
+        return angle;
+      }
+
+      let startAngle = 0;
+      let startRotation = 0;
+
+      function startRotate(e) {
+        if (teState.selectedLineIdx < 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const { x: px, y: py } = getXY(e);
+        const line = teState.textLines[teState.selectedLineIdx];
+        startAngle = calcRotation(px, py);
+        startRotation = line.rotation || 0;
+        teState.isRotating = true;
+        teState.dragMode = 'rotate';
+      }
+
+      function hitTestTextLine(px, py) {
+        let hitIdx = -1;
+        let minDist = Infinity;
+        teState.textLines.forEach((line, idx) => {
+          const lx = line.x * canvas.width;
+          const ly = line.y * canvas.height;
+          const fs = Math.round(line.fontSize * teState.canvasScale);
+          let tw, th;
+          if (line.style === 'promo') {
+            th = Math.round(fs * 2.2) + 6;
+            const m = line.text.match(/^(\d+)\.\s*(.*)/);
+            const itemText = m ? m[2] : line.text;
+            tw = Math.min(itemText.length * fs * 0.65 + fs * 3.5, canvas.width * 0.82) + 6;
+          } else {
+            th = fs * 1.5;
+            tw = Math.min(line.text.length * fs * 0.65 + 20, canvas.width * 0.9);
+          }
+          if (Math.abs(px - lx) <= tw / 2 + 10 && Math.abs(py - ly) <= th / 2 + 10) {
+            const dist = Math.hypot(px - lx, py - ly);
+            if (dist < minDist) { minDist = dist; hitIdx = idx; }
+          }
+        });
+        return hitIdx;
+      }
+
+      function hitTestImageElement(px, py) {
+        let hitIdx = -1;
+        let minDist = Infinity;
+        (teState.imageElements || []).forEach((el, idx) => {
+          const cx = el.x * canvas.width;
+          const cy = el.y * canvas.height;
+          const hw = (el.width || 0.18) * canvas.width / 2;
+          const hh = (el.height || 0.18) * canvas.height / 2;
+          if (Math.abs(px - cx) <= hw + 8 && Math.abs(py - cy) <= hh + 8) {
+            const dist = Math.hypot(px - cx, py - cy);
+            if (dist < minDist) { minDist = dist; hitIdx = idx; }
+          }
+        });
+        return hitIdx;
+      }
+
+      function hitTestImageResizeHandle(px, py) {
+        if (teState.selectedImageIdx < 0) return false;
+        const el = teState.imageElements[teState.selectedImageIdx];
+        const rhx = el.x * canvas.width  + (el.width  || 0.18) * canvas.width  / 2;
+        const rhy = el.y * canvas.height + (el.height || 0.18) * canvas.height / 2;
+        return Math.hypot(px - rhx, py - rhy) < 14;
+      }
+
+      function hitTestImageRotHandle(px, py) {
+        if (teState.selectedImageIdx < 0) return false;
+        const el = teState.imageElements[teState.selectedImageIdx];
+        const cx = el.x * canvas.width;
+        const cy = el.y * canvas.height;
+        const h  = (el.height || 0.18) * canvas.height;
+        const hx = cx, hy = cy + h / 2 + 25;
+        return Math.hypot(px - hx, py - hy) < 15;
+      }
+
+      function calcImageRotation(px, py) {
+        const el = teState.imageElements[teState.selectedImageIdx];
+        const cx = el.x * canvas.width;
+        const cy = el.y * canvas.height;
+        return Math.atan2(py - cy, px - cx) * 180 / Math.PI + 90;
+      }
+
+      function startDrag(e) {
+        if (!teState.img) return;
+        const { x: px, y: py } = getXY(e);
+
+        // --- Image element interaction ---
+        if (teState.selectedImageIdx >= 0) {
+          if (hitTestImageResizeHandle(px, py)) {
+            e.preventDefault();
+            teState.isResizing = true;
+            teState.dragMode = 'resize';
+            return;
+          }
+          if (hitTestImageRotHandle(px, py)) {
+            e.preventDefault();
+            const el = teState.imageElements[teState.selectedImageIdx];
+            startAngle = calcImageRotation(px, py);
+            startRotation = el.rotation || 0;
+            teState.isRotating = true;
+            teState.dragMode = 'imgrotate';
+            return;
+          }
+        }
+
+        // Hit test image elements first
+        const imgHit = hitTestImageElement(px, py);
+        if (imgHit >= 0) {
+          teState.selectedImageIdx = imgHit;
+          teState.selectedLineIdx = -1;
+          renderLineList();
+          updateLineEditPanel();
+          drawEditor();
+          e.preventDefault();
+          teState.isDragging = true;
+          teState.dragMode = 'imgmove';
+          return;
+        }
+
+        // --- Text line interaction ---
+        if (teState.selectedLineIdx < 0) {
+          const hitIdx = hitTestTextLine(px, py);
+          if (hitIdx < 0) {
+            // Click on empty area — deselect image too
+            teState.selectedImageIdx = -1;
+            renderLineList();
+            updateLineEditPanel();
+            drawEditor();
+            return;
+          }
+          teState.selectedLineIdx = hitIdx;
+          teState.selectedImageIdx = -1;
+          renderLineList();
+          updateLineEditPanel();
+          drawEditor();
+        }
+
+        if (hitTestRotationHandle(px, py)) {
+          startRotate(e);
+          return;
+        }
+        e.preventDefault();
+        teState.isDragging = true;
+        teState.dragMode = 'move';
+      }
+
+      function moveDrag(e) {
+        if (!teState.isDragging && !teState.isRotating && !teState.isResizing) return;
+        e.preventDefault();
+        const { x: px, y: py } = getXY(e);
+        const { x: fx, y: fy } = getCanvasXY(e.touches ? e.touches[0].clientX : e.clientX, e.touches ? e.touches[0].clientY : e.clientY);
+
+        if (teState.dragMode === 'imgrotate' && teState.selectedImageIdx >= 0) {
+          const angle = calcImageRotation(px, py);
+          let rot = startRotation + (angle - startAngle);
+          while (rot > 180) rot -= 360;
+          while (rot < -180) rot += 360;
+          teState.imageElements[teState.selectedImageIdx].rotation = Math.round(rot);
+          renderLineList();
+          drawEditor();
+        } else if (teState.dragMode === 'resize' && teState.selectedImageIdx >= 0) {
+          const el = teState.imageElements[teState.selectedImageIdx];
+          const newW = Math.max(0.05, Math.min(0.95, (fx - el.x) * 2));
+          if (teState.imgAspectLock && el._naturalAspect) {
+            const cAspect = canvas.width / canvas.height;
+            el.height = newW * cAspect / el._naturalAspect;
+          } else {
+            const newH = Math.max(0.05, Math.min(0.95, (fy - el.y) * 2));
+            el.height = newH;
+          }
+          el.width = newW;
+          updateLineEditPanel();
+          drawEditor();
+        } else if (teState.dragMode === 'imgmove' && teState.selectedImageIdx >= 0) {
+          teState.imageElements[teState.selectedImageIdx].x = Math.max(0.05, Math.min(0.95, fx));
+          teState.imageElements[teState.selectedImageIdx].y = Math.max(0.05, Math.min(0.95, fy));
+          renderLineList();
+          drawEditor();
+        } else if (teState.isRotating && teState.selectedLineIdx >= 0) {
+          const angle = calcRotation(px, py);
+          let rot = startRotation + (angle - startAngle);
+          while (rot > 180) rot -= 360;
+          while (rot < -180) rot += 360;
+          teState.textLines[teState.selectedLineIdx].rotation = Math.round(rot);
+          renderLineList();
+          drawEditor();
+        } else if (teState.isDragging && teState.selectedLineIdx >= 0) {
+          teState.textLines[teState.selectedLineIdx].x = Math.max(0.05, Math.min(0.95, fx));
+          teState.textLines[teState.selectedLineIdx].y = Math.max(0.05, Math.min(0.95, fy));
+          renderLineList();
+          drawEditor();
+        }
+      }
+
+      function endDrag() {
+        teState.isDragging = false;
+        teState.isRotating = false;
+        teState.isResizing = false;
+        teState.dragMode = null;
+      }
+
+      canvas.addEventListener('mousedown', startDrag);
+      document.addEventListener('mousemove', moveDrag);
+      document.addEventListener('mouseup', endDrag);
+
+      // 滚轮调整悬停文字的字号（每格 ±2px，Ctrl 键 ±10px）
+      canvas.addEventListener('wheel', function(e) {
+        if (!teState.img) return;
+        const { x: px, y: py } = getXY(e);
+        const hitIdx = hitTestTextLine(px, py);
+        if (hitIdx < 0) return;
+        e.preventDefault();
+        const line = teState.textLines[hitIdx];
+        const step = e.ctrlKey ? 10 : 2;
+        const delta = e.deltaY < 0 ? step : -step;
+        line.fontSize = Math.max(8, Math.min(300, (line.fontSize || 20) + delta));
+        // 同步到右侧面板（如果该行正被选中）
+        if (teState.selectedLineIdx === hitIdx) {
+          const slider = document.getElementById('teFontSizeSlider');
+          const input  = document.getElementById('teFontSize');
+          if (slider) slider.value = line.fontSize;
+          if (input)  input.value  = line.fontSize;
+        }
+        renderLineList();
+        drawEditor();
+      }, { passive: false });
+
+      canvas.addEventListener('touchstart', function(e) {
+        if (!teState.img) return;
+        const { x: px, y: py } = getXY(e);
+
+        if (teState.selectedImageIdx >= 0) {
+          if (hitTestImageResizeHandle(px, py)) {
+            e.preventDefault();
+            teState.isResizing = true;
+            teState.dragMode = 'resize';
+            return;
+          }
+          if (hitTestImageRotHandle(px, py)) {
+            e.preventDefault();
+            const el = teState.imageElements[teState.selectedImageIdx];
+            startAngle = calcImageRotation(px, py);
+            startRotation = el.rotation || 0;
+            teState.isRotating = true;
+            teState.dragMode = 'imgrotate';
+            return;
+          }
+        }
+
+        const imgHit = hitTestImageElement(px, py);
+        if (imgHit >= 0) {
+          teState.selectedImageIdx = imgHit;
+          teState.selectedLineIdx = -1;
+          renderLineList();
+          updateLineEditPanel();
+          drawEditor();
+          e.preventDefault();
+          teState.isDragging = true;
+          teState.dragMode = 'imgmove';
+          return;
+        }
+
+        if (teState.selectedLineIdx < 0) {
+          const hitIdx = hitTestTextLine(px, py);
+          if (hitIdx >= 0) {
+            teState.selectedLineIdx = hitIdx;
+            teState.selectedImageIdx = -1;
+            renderLineList();
+            updateLineEditPanel();
+            drawEditor();
+          }
+        }
+
+        if (teState.selectedLineIdx >= 0 && hitTestRotationHandle(px, py)) {
+          startRotate(e);
+          return;
+        }
+
+        if (e.touches.length === 1 && teState.selectedLineIdx >= 0) {
+          e.preventDefault();
+          teState.isDragging = true;
+          teState.dragMode = 'move';
+        }
+      }, { passive: false });
+
+      canvas.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+        if (e.touches.length === 1 && (teState.isDragging || teState.isRotating)) {
+          moveDrag(e);
+        }
+      }, { passive: false });
+
+      canvas.addEventListener('touchend', function() {
+        endDrag();
+      });
+
+      const colorInputs = [
+        { colorId: 'teColor', hexId: 'teColorHex', prop: 'color' },
+        { colorId: 'teStrokeColor', hexId: 'teStrokeColorHex', prop: 'strokeColor' },
+        { colorId: 'teGlowColor', hexId: 'teGlowColorHex', prop: 'glowColor' },
+      ];
+
+      colorInputs.forEach(({ colorId, hexId, prop }) => {
+        const picker = document.getElementById(colorId);
+        const hex = document.getElementById(hexId);
+        picker.addEventListener('input', () => {
+          if (teState.selectedLineIdx >= 0) {
+            teState.textLines[teState.selectedLineIdx][prop] = picker.value;
+            hex.value = picker.value;
+            drawEditor();
+          }
+        });
+        hex.addEventListener('change', () => {
+          if (teState.selectedLineIdx >= 0) {
+            const val = hex.value;
+            if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+              teState.textLines[teState.selectedLineIdx][prop] = val;
+              picker.value = val;
+              drawEditor();
+            }
+          }
+        });
+      });
+
+      document.getElementById('teFontFamily').addEventListener('change', function() {
+        if (teState.selectedLineIdx >= 0) {
+          teState.textLines[teState.selectedLineIdx].fontFamily = this.value;
+          drawEditor();
+        }
+      });
+
+      document.getElementById('teFontWeight').addEventListener('change', function() {
+        if (teState.selectedLineIdx >= 0) {
+          teState.textLines[teState.selectedLineIdx].fontWeight = this.value;
+          drawEditor();
+        }
+      });
+
+      const fontSizeSlider = document.getElementById('teFontSizeSlider');
+      const fontSizeInput = document.getElementById('teFontSize');
+      if (fontSizeSlider && fontSizeInput) {
+        fontSizeSlider.addEventListener('input', function() {
+          if (teState.selectedLineIdx >= 0) {
+            const val = parseInt(this.value);
+            teState.textLines[teState.selectedLineIdx].fontSize = val;
+            fontSizeInput.value = val;
+            drawEditor();
+          }
+        });
+        fontSizeInput.addEventListener('change', function() {
+          if (teState.selectedLineIdx >= 0) {
+            const val = Math.max(12, Math.min(120, parseInt(this.value) || 40));
+            teState.textLines[teState.selectedLineIdx].fontSize = val;
+            fontSizeSlider.value = val;
+            this.value = val;
+            drawEditor();
+          }
+        });
+      }
+
+      document.querySelectorAll('.te-art-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (teState.selectedLineIdx >= 0) {
+            teState.textLines[teState.selectedLineIdx].artStyle = btn.dataset.art;
+            updateLineEditPanel();
+            drawEditor();
+          }
+        });
+      });
+
+      // Image size controls
+      function syncImgSize(prop, val) {
+        if (teState.selectedImageIdx < 0) return;
+        const el = teState.imageElements[teState.selectedImageIdx];
+        const pct = Math.max(5, Math.min(80, parseInt(val) || 20));
+        if (prop === 'width') {
+          el.width = pct / 100;
+          if (teState.imgAspectLock && el._naturalAspect) {
+            const cAspect = (document.getElementById('teCanvas').width || 1) / (document.getElementById('teCanvas').height || 1);
+            el.height = el.width * cAspect / el._naturalAspect;
+            const hPct = Math.round(el.height * 100);
+            document.getElementById('teImgHeight').value = hPct;
+            document.getElementById('teImgHeightSlider').value = hPct;
+          }
+        } else {
+          el.height = pct / 100;
+          if (teState.imgAspectLock && el._naturalAspect) {
+            const cAspect = (document.getElementById('teCanvas').width || 1) / (document.getElementById('teCanvas').height || 1);
+            el.width = el.height * el._naturalAspect / cAspect;
+            const wPct = Math.round(el.width * 100);
+            document.getElementById('teImgWidth').value = wPct;
+            document.getElementById('teImgWidthSlider').value = wPct;
+          }
+        }
+        drawEditor();
+      }
+
+      ['teImgWidthSlider', 'teImgWidth'].forEach(id => {
+        document.getElementById(id).addEventListener('input', function() {
+          const pct = parseInt(this.value) || 20;
+          document.getElementById('teImgWidth').value = pct;
+          document.getElementById('teImgWidthSlider').value = pct;
+          syncImgSize('width', pct);
+        });
+      });
+      ['teImgHeightSlider', 'teImgHeight'].forEach(id => {
+        document.getElementById(id).addEventListener('input', function() {
+          const pct = parseInt(this.value) || 20;
+          document.getElementById('teImgHeight').value = pct;
+          document.getElementById('teImgHeightSlider').value = pct;
+          syncImgSize('height', pct);
+        });
+      });
+
+    })();
+
+    function toggleImgAspectLock() {
+      teState.imgAspectLock = !teState.imgAspectLock;
+      const btn = document.getElementById('teImgLockAspect');
+      if (btn) {
+        btn.classList.toggle('active', teState.imgAspectLock);
+        btn.textContent = teState.imgAspectLock ? '锁定比例 ✓' : '锁定比例';
+      }
+    }
+
+    function removeSelectedImage() {
+      if (teState.selectedImageIdx < 0) return;
+      teState.imageElements.splice(teState.selectedImageIdx, 1);
+      teState.selectedImageIdx = -1;
+      renderLineList();
+      updateLineEditPanel();
+      drawEditor();
+    }
+
+    async function confirmTextEdit() {
+      if (teState.isDual) return confirmDualTextEdit();
+
+      const { cleanScaledUrl, cleanCompositeUrl, templateUrl, fanBox,
+              merchantInfo, genStyle, imgEl, dlBtn, submitBtn, editBtnEl, bubble, textLines, imageElements } = teState;
+
+      const confirmBtn = document.getElementById('teConfirmBtn');
+      const errEl      = document.getElementById('teErr');
+      errEl.textContent = '';
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = '生成中…';
+
+      try {
+        if (!cleanScaledUrl) {
+          throw new Error('缺少图片URL，请重新生成图片后再编辑');
+        }
+        if (!templateUrl) {
+          throw new Error('缺少模板URL，请重新生成图片后再编辑');
+        }
+        if (!merchantInfo || !hasContent(merchantInfo)) {
+          throw new Error('缺少商家信息，请填写商家信息');
+        }
+
+        console.log('confirmTextEdit - teState.textLines:', JSON.stringify(teState.textLines, null, 2));
+        console.log('confirmTextEdit - destructured textLines:', JSON.stringify(textLines, null, 2));
+        
+        const lines = textLines || [];
+        console.log('confirmTextEdit - lines count:', lines.length);
+        if (lines.length > 0) {
+          console.log('confirmTextEdit - lines[0]:', JSON.stringify({
+            text: lines[0].text,
+            x: lines[0].x, 
+            y: lines[0].y, 
+            rotation: lines[0].rotation,
+            fontFamily: lines[0].fontFamily,
+            artStyle: lines[0].artStyle
+          }));
+        } else {
+          console.log('confirmTextEdit - lines[0]: undefined (lines is empty)');
+        }
+        const avgX = lines.length > 0 ? lines.reduce((s, l) => s + (l.x || 0.5), 0) / lines.length : 0.5;
+        const avgY = lines.length > 0 ? lines.reduce((s, l) => s + (l.y || 0.5), 0) / lines.length : 0.5;
+        
+        const reqBody = {
+          cleanScaledUrl: String(cleanScaledUrl),
+          templateUrl: String(templateUrl),
+          merchantInfo: merchantInfo,
+          genStyle: String(genStyle || 'default'),
+          fanW: teState.bbW || 0,
+          fanH: teState.bbH || 0,
+          textCenterFraction: Number(avgY.toFixed(3)),
+          textCenterX: Number(avgX.toFixed(3)),
+          szMult: 1.0,
+          textLines: lines.map(line => ({
+            text: line.text,
+            x: line.x,
+            y: line.y,
+            rotation: line.rotation || 0,
+            fontSize: line.fontSize,
+            fontFamily: line.fontFamily,
+            fontWeight: line.fontWeight,
+            color: line.color,
+            style: line.style || '',
+            artStyle: line.artStyle || '',
+            strokeColor: line.strokeColor,
+            glowColor: line.glowColor,
+            colorStops: line.colorStops,
+          })),
+          imageElements: (imageElements || []).map(el => ({
+            src: el.src,
+            x: el.x,
+            y: el.y,
+            width: el.width,
+            height: el.height,
+            rotation: el.rotation || 0,
+          })),
+        };
+        
+        console.log('发送请求到:', `${API}/api/image/recomposite-text`);
+        console.log('请求内容:', JSON.stringify(reqBody, null, 2));
+        
+        const res = await fetch(`${API}/api/image/recomposite-text`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(reqBody),
+        });
+        console.log('响应状态:', res.status);
+        const data = await res.json();
+        console.log('响应内容:', data);
+        if (!res.ok) throw new Error(data.message || '重新合成失败');
+        if (!data.url) throw new Error('服务端未返回图片地址，请重试');
+
+        closeTextEditor();
+
+        const newUrl    = data.url;
+        const newFanBox = data.fanBox || fanBox;
+        const currentTextLines = [...textLines];
+        const currentImageElements = (imageElements || []).map(el => ({
+          id: el.id, src: el.src, x: el.x, y: el.y,
+          width: el.width, height: el.height, rotation: el.rotation || 0,
+        }));
+
+        if (imgEl) {
+          const safe = newUrl.replace(/'/g, "\\'");
+          imgEl.src = newUrl;
+          imgEl.setAttribute('onclick', `openLightbox('${safe}')`);
+        }
+        if (dlBtn) {
+          const newDlHref = data.cdrUrl || newUrl;
+          dlBtn.dataset.dlUrl = newDlHref;
+          if (data.cdrUrl) {
+            dlBtn.dataset.dlName = (dlBtn.dataset.dlName || 'fan-result.png').replace('.png', '.cdr');
+            dlBtn.textContent = '⬇ 下载 CDR';
+          } else {
+            dlBtn.dataset.dlName = (dlBtn.dataset.dlName || 'fan-result.png');
+          }
+        }
+
+        if (submitBtn) {
+          const ns = submitBtn.cloneNode(true);
+          ns.addEventListener('click', () => openOrderModal(newUrl, data.cdrUrl));
+          submitBtn.replaceWith(ns);
+          teState.submitBtn = ns;
+          // 同步更新父容器的 data 属性，保证合并提交按钮能读到最新 URL
+          if (bubble && bubble.dataset && 'submitUrl' in bubble.dataset) {
+            bubble.dataset.submitUrl    = newUrl;
+            bubble.dataset.submitCdrUrl = data.cdrUrl || '';
+          }
+        }
+
+        if (editBtnEl) {
+          const ne = editBtnEl.cloneNode(true);
+          ne.addEventListener('click', () => openTextEditor({
+            compositeUrl:      newUrl,
+            cleanScaledUrl,
+            cleanCompositeUrl,
+            bbW:               teState.bbW,
+            bbH:               teState.bbH,
+            templateUrl,
+            fanBox:            newFanBox,
+            initialFraction:   null,
+            merchantInfo,
+            textLines:         currentTextLines,
+            imageElements:     currentImageElements,
+            genStyle,
+            imgEl,
+            dlBtn,
+            submitBtn: teState.submitBtn || submitBtn,
+            editBtnEl: ne,
+            bubble,
+          }));
+          editBtnEl.replaceWith(ne);
+        }
+
+      } catch (err) {
+        errEl.textContent = err.message;
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = '确认重新生成';
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════
+       双图模式：同时重新合成正面+反面
+    ═══════════════════════════════════════════════════ */
+    async function confirmDualTextEdit() {
+      const confirmBtn = document.getElementById('teConfirmBtn');
+      const errEl      = document.getElementById('teErr');
+      errEl.textContent = '';
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = '生成中…';
+
+      // 将当前活跃面板的最新状态存入 panels 数组
+      savePanelState(teState.activePanelIdx);
+      // 若 panels[0] 仍为 null（用户从未切换过面板），则手动保存正面
+      if (!teState.panels[0]) {
+        teState.isDual = true; // 确保 savePanelState 生效
+        savePanelState(0);
+      }
+
+      const panelState = teState._panelState;
+      const dualWrap   = teState._dualWrap;
+
+      try {
+        const panelResults = [];
+        for (let pi = 0; pi < 2; pi++) {
+          const p = teState.panels[pi];
+          if (!p || !p.cleanScaledUrl || !p.templateUrl) {
+            panelResults.push(null);
+            continue;
+          }
+          const lines = p.textLines || [];
+          const avgX = lines.length > 0 ? lines.reduce((s, l) => s + (l.x || 0.5), 0) / lines.length : 0.5;
+          const avgY = lines.length > 0 ? lines.reduce((s, l) => s + (l.y || 0.5), 0) / lines.length : 0.5;
+          const reqBody = {
+            cleanScaledUrl:     String(p.cleanScaledUrl),
+            templateUrl:        String(p.templateUrl),
+            merchantInfo:       p.merchantInfo,
+            genStyle:           String(p.genStyle || 'default'),
+            fanW:               p.bbW || 0,
+            fanH:               p.bbH || 0,
+            textCenterFraction: Number(avgY.toFixed(3)),
+            textCenterX:        Number(avgX.toFixed(3)),
+            szMult:             1.0,
+            textLines: lines.map(line => ({
+              text: line.text, x: line.x, y: line.y, rotation: line.rotation || 0,
+              fontSize: line.fontSize, fontFamily: line.fontFamily, fontWeight: line.fontWeight,
+              color: line.color, style: line.style || '', artStyle: line.artStyle || '',
+              strokeColor: line.strokeColor, glowColor: line.glowColor, colorStops: line.colorStops,
+            })),
+            imageElements: (p.imageElements || []).map(el => ({
+              src: el.src, x: el.x, y: el.y, width: el.width, height: el.height, rotation: el.rotation || 0,
+            })),
+          };
+          confirmBtn.textContent = `生成${['正面', '反面'][pi]}…`;
+          const res  = await fetch(`${API}/api/image/recomposite-text`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(`${['正面', '反面'][pi]}：${data.message || '重新合成失败'}`);
+          if (!data.url) throw new Error(`${['正面', '反面'][pi]}：服务端未返回图片地址`);
+          panelResults.push({ url: data.url, cdrUrl: data.cdrUrl || null, fanBox: data.fanBox,
+                              lines: p.textLines, imageElements: p.imageElements });
+        }
+
+        // 更新每个面板的 DOM + 更新 panelState（供下次编辑使用）
+        for (let pi = 0; pi < 2; pi++) {
+          const pr = panelResults[pi];
+          if (!pr) continue;
+          const p = teState.panels[pi];
+          if (!p) continue;
+          const newUrl = pr.url;
+
+          {
+            // 优先通过 dualWrap 直接查 DOM，避免 p.imgEl 引用失效导致更新不到显示元素
+            const itemEls2 = dualWrap ? Array.from(dualWrap.querySelectorAll('.dual-result-item')) : [];
+            const domImg = itemEls2[pi]?.querySelector('img.composite-result-img');
+            const targetImg = domImg || p.imgEl;
+            if (targetImg) {
+              const safe = newUrl.replace(/'/g, "\\'");
+              targetImg._origUrl = newUrl;
+              targetImg._retries = 0;
+              targetImg.src = newUrl;
+              targetImg.setAttribute('onclick', `openLightbox('${safe}')`);
+              if (!targetImg.onerror) {
+                targetImg.onerror = function() {
+                  if (!this._origUrl || this._retries >= 3) return;
+                  this._retries++;
+                  const r = this._retries;
+                  setTimeout(() => { this.src = this._origUrl + (this._origUrl.includes('?') ? '&' : '?') + '_r=' + r; }, 1500 * r);
+                };
+              }
+            }
+          }
+          if (p.dlBtn) {
+            p.dlBtn.dataset.dlUrl = pr.cdrUrl || newUrl;
+            if (pr.cdrUrl) {
+              p.dlBtn.dataset.dlName = (p.dlBtn.dataset.dlName || '').replace('.png', '.cdr');
+              p.dlBtn.textContent = `⬇ 下载${['正面', '反面'][pi]} CDR`;
+            }
+          }
+          if (p.submitBtn) {
+            const ns = p.submitBtn.cloneNode(true);
+            ns.addEventListener('click', () => openOrderModal(newUrl, pr.cdrUrl));
+            p.submitBtn.replaceWith(ns);
+            p.submitBtn = ns;
+          }
+          if (p.bubble && p.bubble.dataset && 'submitUrl' in p.bubble.dataset) {
+            p.bubble.dataset.submitUrl    = newUrl;
+            p.bubble.dataset.submitCdrUrl = pr.cdrUrl || '';
+          }
+          // 更新可变的 panelState，确保下一次点击编辑按钮时使用最新数据
+          if (panelState && panelState[pi]) {
+            panelState[pi].compositeUrl  = newUrl;
+            panelState[pi].textLines     = (pr.lines || []).map(l => Object.assign({}, l));
+            panelState[pi].imageElements = (pr.imageElements || []).map(e => Object.assign({}, e));
+            if (pr.fanBox) panelState[pi].fanBox = pr.fanBox;
+          }
+        }
+
+        // 替换 dualEditBtn，绑定新的监听器（读取已更新的 panelState）
+        const oldBtn = teState._dualEditBtn;
+        if (oldBtn && oldBtn.parentNode) {
+          const newBtn = oldBtn.cloneNode(true);
+          newBtn.addEventListener('click', () => {
+            if (!dualWrap) return;
+            const itemEls = Array.from(dualWrap.querySelectorAll('.dual-result-item'));
+            openDualTextEditor({
+              front: Object.assign({}, panelState?.[0] || {}, {
+                imgEl:     itemEls[0]?.querySelector('img.composite-result-img'),
+                dlBtn:     itemEls[0]?.querySelector('.composite-download-btn'),
+                submitBtn: teState.panels?.[0]?.submitBtn,
+                bubble:    itemEls[0],
+              }),
+              back: Object.assign({}, panelState?.[1] || {}, {
+                imgEl:     itemEls[1]?.querySelector('img.composite-result-img'),
+                dlBtn:     itemEls[1]?.querySelector('.composite-download-btn'),
+                submitBtn: teState.panels?.[1]?.submitBtn,
+                bubble:    itemEls[1],
+              }),
+              dualEditBtn: newBtn,
+              wrap:        dualWrap,
+              panelState,
+            });
+          });
+          oldBtn.replaceWith(newBtn);
+        }
+
+        closeTextEditor();
+
+      } catch (err) {
+        errEl.textContent = err.message;
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = '确认重新生成';
+      }
+    }
+
+        /* ═══════════════════════════════════════════════════
+       订单提交弹窗
+    ═══════════════════════════════════════════════════ */
+    let pendingOrderImageUrl  = null;
+    let pendingOrderCdrUrl    = null;
+    let pendingOrderImageUrl2 = null;  // 双图模式第二张（反面）
+    let pendingOrderCdrUrl2   = null;
+
+    function openOrderModal(imageUrl, cdrUrl, imageUrl2 = null, cdrUrl2 = null) {
+      pendingOrderImageUrl  = imageUrl;
+      pendingOrderCdrUrl    = cdrUrl   || null;
+      pendingOrderImageUrl2 = imageUrl2 || null;
+      pendingOrderCdrUrl2   = cdrUrl2   || null;
+      document.getElementById('orderSpecs').value  = '';
+      document.getElementById('orderQty').value    = '';
+      document.getElementById('orderNo').value     = '';
+      document.getElementById('orderErr').textContent = '';
+      document.getElementById('orderConfirmBtn').disabled = false;
+      document.getElementById('orderConfirmBtn').textContent = '确认提交';
+      document.getElementById('orderOverlay').style.display = 'flex';
+      document.getElementById('orderSpecs').focus();
+    }
+
+    function closeOrderModal() {
+      document.getElementById('orderOverlay').style.display = 'none';
+      pendingOrderImageUrl  = null;
+      pendingOrderCdrUrl    = null;
+      pendingOrderImageUrl2 = null;
+      pendingOrderCdrUrl2   = null;
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeOrderModal();
+    });
+
+    async function submitOrder() {
+      const specs   = document.getElementById('orderSpecs').value.trim();
+      const qtyRaw  = document.getElementById('orderQty').value.trim();
+      const orderNo = document.getElementById('orderNo').value.trim();
+      const errEl   = document.getElementById('orderErr');
+
+      errEl.textContent = '';
+
+      if (!specs)   { errEl.textContent = '请填写规格'; return; }
+      const qty = Number(qtyRaw);
+      if (!qtyRaw || isNaN(qty) || qty <= 0 || qty % 500 !== 0) {
+        errEl.textContent = '数量必须是 500 的整数倍（如 500、1000、2000…）';
+        return;
+      }
+      if (!orderNo) { errEl.textContent = '请填写淘宝订单编号'; return; }
+      if (!pendingOrderImageUrl) { errEl.textContent = '图片无效，请重新生成后再提交'; return; }
+
+      const btn = document.getElementById('orderConfirmBtn');
+      btn.disabled = true;
+      btn.textContent = '提交中…';
+
+      try {
+        const doSubmit = (imgUrl, cdrU) => fetch(`${API}/api/materials/order-submit`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            urlToken:    urlToken,
+            imageUrl:    imgUrl,
+            cdrUrl:      cdrU,
+            specs,
+            quantity:    qty,
+            orderNumber: orderNo,
+          }),
+        });
+
+        const res  = await doSubmit(pendingOrderImageUrl, pendingOrderCdrUrl);
+        const data = await res.json();
+        if (!res.ok) { errEl.textContent = data.message || '提交失败，请稍后重试'; return; }
+
+        if (pendingOrderImageUrl2) {
+          const res2  = await doSubmit(pendingOrderImageUrl2, pendingOrderCdrUrl2);
+          const data2 = await res2.json();
+          if (!res2.ok) { errEl.textContent = '反面：' + (data2.message || '提交失败，请稍后重试'); return; }
+        }
+
+        const dualNote = pendingOrderImageUrl2 ? '（正面+反面共 2 张）' : '';
+        closeOrderModal();
+        // 在聊天中追加提示
+        appendMsg('ai', `✅ 订单已成功提交至材料仓库！${dualNote}\n\n📐 规格：${specs}\n🔢 数量：${qty} 把\n🛒 订单号：${orderNo}\n\n可前往「材料仓库」查看提交记录。`);
+      } catch {
+        errEl.textContent = '网络错误，请检查连接后重试';
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = '确认提交';
+      }
+    }
   </script>
 </body>
 </html>

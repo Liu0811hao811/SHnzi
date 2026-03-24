@@ -354,7 +354,7 @@
   </div>
 
   <script>
-    const API   = 'http://localhost:5000';
+const API = 'http://network.ipyingshe.net';
     const token = localStorage.getItem('token');
     if (!token) { location.href = 'login.html'; }
     const currentUser = localStorage.getItem('currentUser');
@@ -401,6 +401,30 @@
       return lines.slice(0, 4);
     }
 
+    // 判断调色板是否为深色背景（通过主文字色亮度反推）
+    function isPaletteDark(pal) {
+      const h = pal.textPri.replace('#', '');
+      if (h.length < 6) return false;
+      const r = parseInt(h.substr(0,2),16), g = parseInt(h.substr(2,2),16), b = parseInt(h.substr(4,2),16);
+      return (r*299 + g*587 + b*114) / 1000 > 180;
+    }
+
+    // 兼容性圆角矩形路径（不依赖 ctx.roundRect）
+    function rrPath(ctx, x, y, w, h, r) {
+      r = Math.min(r, w/2, h/2);
+      ctx.beginPath();
+      ctx.moveTo(x+r, y);
+      ctx.lineTo(x+w-r, y);
+      ctx.arcTo(x+w, y,   x+w, y+r,   r);
+      ctx.lineTo(x+w, y+h-r);
+      ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+      ctx.lineTo(x+r, y+h);
+      ctx.arcTo(x,   y+h, x,   y+h-r, r);
+      ctx.lineTo(x,  y+r);
+      ctx.arcTo(x,   y,   x+r, y,     r);
+      ctx.closePath();
+    }
+
     function drawPattern(ctx, pal, cx, cy, R, style) {
       ctx.save(); ctx.globalAlpha = 0.10; ctx.strokeStyle = pal.accent; ctx.lineWidth = 1;
       if (style === '古典中式') {
@@ -424,14 +448,123 @@
 
     function renderText(ctx, pal, text, cx, cy, maxW) {
       if (!text) return;
-      const lines = wrapText(text, 10);
-      const lh = 20;
-      ctx.font = `bold 14px ${pal.font}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      const total = lines.length;
-      lines.forEach((line, i) => {
-        const y = cy + (i - (total-1)/2) * lh;
-        ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillText(line, cx+1, y+1);
-        ctx.fillStyle = pal.textPri;        ctx.fillText(line, cx, y);
+      const rawLines = text.split('\n').map(l => l.trim()).filter(Boolean);
+      if (!rawLines.length) return;
+      ctx.save();
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+      // 层级排版：第一行主标题、后续行副信息
+      const cfgs = rawLines.map((_, i) => ({
+        size:   i === 0 ? 15 : (i <= 2 ? 11 : 10),
+        weight: i === 0 ? 'bold' : 'normal',
+        color:  i === 0 ? pal.textPri : pal.textSec,
+      }));
+      const LH = cfgs.map(c => c.size + 9);
+      const hasDivider = rawLines.length > 1;
+      const totalH = LH.reduce((a,b)=>a+b,0) + (rawLines.length-1)*3 + (hasDivider ? 10 : 0);
+
+      // 测量最长行宽
+      let maxLineW = 0;
+      rawLines.forEach((line, i) => {
+        ctx.font = `${cfgs[i].weight} ${cfgs[i].size}px ${pal.font}`;
+        maxLineW = Math.max(maxLineW, ctx.measureText(line).width);
+      });
+
+      const boxW = Math.min(maxLineW + 34, maxW);
+      const boxH = totalH + 20;
+      const bx = cx - boxW/2, by = cy - boxH/2;
+      const dark = isPaletteDark(pal);
+
+      // 半透明卡片底衬
+      ctx.globalAlpha = 0.68;
+      ctx.fillStyle = dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.09)';
+      rrPath(ctx, bx, by, boxW, boxH, 6); ctx.fill();
+
+      // 顶部金色装饰横条
+      const barW = boxW * 0.45;
+      ctx.globalAlpha = 0.88;
+      ctx.fillStyle = pal.accent;
+      rrPath(ctx, cx - barW/2, by, barW, 2.5, 1.5); ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // 逐行渲染
+      let y = by + 10;
+      rawLines.forEach((line, i) => {
+        const cfg = cfgs[i];
+        const lh = LH[i];
+        y += lh/2;
+        ctx.globalAlpha = i === 0 ? 1 : 0.88;
+        ctx.font = `${cfg.weight} ${cfg.size}px ${pal.font}`;
+        ctx.fillStyle = 'rgba(0,0,0,0.20)';
+        ctx.fillText(line, cx+0.5, y+0.5);
+        ctx.fillStyle = cfg.color;
+        ctx.fillText(line, cx, y);
+        ctx.globalAlpha = 1;
+        y += lh/2;
+
+        // 主标题下分隔线
+        if (i === 0 && hasDivider) {
+          y += 3;
+          ctx.strokeStyle = pal.accent; ctx.globalAlpha = 0.32; ctx.lineWidth = 0.5;
+          ctx.beginPath(); ctx.moveTo(cx - boxW*0.3, y); ctx.lineTo(cx + boxW*0.3, y); ctx.stroke();
+          ctx.globalAlpha = 1; y += 7;
+        } else {
+          y += 3;
+        }
+      });
+      ctx.restore();
+    }
+
+    // 模板图片模式专用：渐变底条 + 分层文字
+    function renderTextOnImage(ctx, pal, text, W, H) {
+      const rawLines = text.split('\n').map(l => l.trim()).filter(Boolean);
+      if (!rawLines.length) return;
+
+      // 底部渐变压暗
+      const overlayH = Math.min(H * 0.42, Math.max(90, rawLines.length * 24 + 56));
+      const grad = ctx.createLinearGradient(0, H - overlayH, 0, H);
+      grad.addColorStop(0, 'rgba(0,0,0,0)');
+      grad.addColorStop(0.38, 'rgba(0,0,0,0.52)');
+      grad.addColorStop(1, 'rgba(0,0,0,0.82)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, H - overlayH, W, overlayH);
+
+      // 金色装饰分割线
+      ctx.globalAlpha = 0.82;
+      ctx.fillStyle = pal.accent;
+      const lineW = W * 0.55;
+      rrPath(ctx, (W - lineW)/2, H - overlayH + 13, lineW, 2, 1); ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // 层级排版
+      const cfgs = rawLines.map((_, i) => ({
+        size:   i === 0 ? 17 : (i === 1 ? 12 : 10),
+        weight: i === 0 ? 'bold' : 'normal',
+        color:  i === 0 ? '#ffffff' : 'rgba(255,255,255,0.82)',
+      }));
+      const LH = cfgs.map(c => c.size + 8);
+      const hasDivider = rawLines.length > 1;
+      const totalH = LH.reduce((a,b)=>a+b,0) + (rawLines.length-1)*4 + (hasDivider ? 10 : 0);
+
+      const textAreaTop = H - overlayH + 20;
+      let y = textAreaTop + ((overlayH - 20) - totalH) / 2;
+
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      rawLines.forEach((line, i) => {
+        const cfg = cfgs[i];
+        ctx.font = `${cfg.weight} ${cfg.size}px ${pal.font}`;
+        ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillText(line, W/2+1, y+1);
+        ctx.fillStyle = cfg.color;           ctx.fillText(line, W/2,   y);
+        y += LH[i];
+
+        if (i === 0 && hasDivider) {
+          y += 3;
+          ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = 0.6; ctx.globalAlpha = 0.55;
+          ctx.beginPath(); ctx.moveTo(W/2 - 48, y); ctx.lineTo(W/2 + 48, y); ctx.stroke();
+          ctx.globalAlpha = 1; y += 7;
+        } else {
+          y += 4;
+        }
       });
     }
 
@@ -513,7 +646,7 @@
         const dw = img.width * scale, dh = img.height * scale;
         const dx = (W - dw) / 2,     dy = (H - dh) / 2;
         ctx.drawImage(img, dx, dy, dw, dh);
-        if (text) renderText(ctx, pal, text, W / 2, H / 2, W * 0.75);
+        if (text) renderTextOnImage(ctx, pal, text, W, H);
       } else {
         // 非图片格式，显示占位
         ctx.fillStyle = '#f4f4f8';

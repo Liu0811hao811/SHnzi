@@ -7,7 +7,8 @@ const jwt     = require('jsonwebtoken');
 
 const SECRET      = process.env.JWT_SECRET || 'shanzi_jwt_secret_2026';
 const TOKENS_FILE = path.join(__dirname, '../data/ai-tokens.json');
-const EXTEND_COUNT = 10; // 每次续次数增加量
+const EXTEND_COUNT = 10;
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 function readTokens() {
   if (!fs.existsSync(TOKENS_FILE)) return [];
@@ -49,10 +50,6 @@ router.get('/list', authMiddleware, (req, res) => {
       return {
         token:            t.token,
         username:         t.username || t.userId,
-        specs:            t.specs,
-        industry:         t.industry,
-        style:            t.style,
-        template:         t.template,
         createdAt:        t.createdAt,
         expiresAt:        t.expiresAt,
         limitType:        t.limitType || 'time',
@@ -60,7 +57,7 @@ router.get('/list', authMiddleware, (req, res) => {
         remainingCount:   isCount ? (t.remainingCount ?? 0) : undefined,
         remainingSeconds: isCount ? undefined
           : Math.max(0, Math.round((new Date(t.expiresAt).getTime() - now) / 1000)),
-        link: `http://localhost:3000/ai?token=${t.token}`,
+        link: `${FRONTEND_URL}/ai?token=${t.token}`,
       };
     });
   res.json(records);
@@ -68,17 +65,14 @@ router.get('/list', authMiddleware, (req, res) => {
 
 // ─── POST /api/ai-link/generate ──────────────────────────────────────
 router.post('/generate', authMiddleware, (req, res) => {
-  const { specs, industry, style, template, username, limitType, limitValue } = req.body;
-  if (!specs || !industry || !style || !template) {
-    return res.status(400).json({ message: '请选择全部选项' });
-  }
+  const { username, limitType, limitValue } = req.body;
   const type  = limitType === 'count' ? 'count' : 'time';
   const value = parseInt(limitValue, 10);
   if (!value || value <= 0) {
     return res.status(400).json({ message: '请选择有效的限制值' });
   }
 
-  let list = cleanExpired(readTokens()).filter(t => t.userId !== req.user.username);
+  let list = cleanExpired(readTokens());
 
   const token = crypto.randomBytes(24).toString('hex');
   const now   = new Date();
@@ -92,7 +86,6 @@ router.post('/generate', authMiddleware, (req, res) => {
     token,
     userId:    req.user.username,
     username:  username || req.user.username,
-    specs, industry, style, template,
     limitType:  type,
     limitValue: value,
     createdAt:  now.toISOString(),
@@ -110,7 +103,7 @@ router.post('/generate', authMiddleware, (req, res) => {
     limitValue:       value,
     remainingSeconds: type === 'time' ? value * 60 : undefined,
     remainingCount:   type === 'count' ? value : undefined,
-    link:             `http://localhost:3000/ai?token=${token}`,
+    link:             `${FRONTEND_URL}/ai?token=${token}`,
   });
 });
 
@@ -133,10 +126,6 @@ router.get('/verify/:token', (req, res) => {
     return res.json({
       valid:            true,
       userId:           entry.userId,
-      specs:            entry.specs,
-      industry:         entry.industry,
-      style:            entry.style,
-      template:         entry.template,
       expiresAt:        entry.expiresAt,
       limitType:        'time',
       limitValue:       entry.limitValue,
@@ -148,10 +137,6 @@ router.get('/verify/:token', (req, res) => {
   return res.json({
     valid:          true,
     userId:         entry.userId,
-    specs:          entry.specs,
-    industry:       entry.industry,
-    style:          entry.style,
-    template:       entry.template,
     expiresAt:      entry.expiresAt,
     limitType:      'count',
     limitValue:     entry.limitValue,

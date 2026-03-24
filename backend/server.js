@@ -25,6 +25,8 @@ const templatesRoutes = require('./routes/templates');
 const designsRoutes   = require('./routes/designs');
 const aiLinkRoutes    = require('./routes/aiLink');
 const imageGenRoutes  = require('./routes/imageGen');
+const materialsRoutes = require('./routes/materials');
+const settingsRoutes  = require('./routes/settings');
 
 const app  = express();
 const PORT = 5000;
@@ -40,26 +42,30 @@ const usersFile     = path.join(dataDir, 'users.json');
 const templatesFile = path.join(dataDir, 'templates.json');
 const designsFile    = path.join(dataDir, 'designs.json');
 const aiTokensFile   = path.join(dataDir, 'ai-tokens.json');
+const materialsFile  = path.join(dataDir, 'materials.json');
+const settingsFile   = path.join(dataDir, 'settings.json');
 if (!fs.existsSync(usersFile))     fs.writeFileSync(usersFile,     '[]');
 if (!fs.existsSync(templatesFile)) fs.writeFileSync(templatesFile, '[]');
 if (!fs.existsSync(designsFile))   fs.writeFileSync(designsFile,   '[]');
 if (!fs.existsSync(aiTokensFile))  fs.writeFileSync(aiTokensFile,  '[]');
+if (!fs.existsSync(materialsFile)) fs.writeFileSync(materialsFile, '[]');
+if (!fs.existsSync(settingsFile))  fs.writeFileSync(settingsFile,  '{}');
 
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://localhost:5173',  // Vite 开发服务器
-    'http://127.0.0.1:5173',
-  ],
-  credentials: true,
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(express.json({ limit: '50mb' }));
 
-// 静态文件（上传的模板）— 明确设置 CORS 头，让 canvas crossOrigin 请求能读取像素
+// 静态文件（上传的模板 + 素材仓库）— 明确设置 CORS 头，让 canvas crossOrigin 请求能读取像素
+app.use(express.static(path.join(__dirname, '../frontend')));
+
 app.use('/uploads', (req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  // no-transform 告知 nginx gzip 模块不压缩此响应，避免 Content-Length 不匹配导致图片丢失
+  res.setHeader('Cache-Control', 'no-store, no-transform');
   next();
 }, express.static(uploadsDir));
 
@@ -75,6 +81,8 @@ app.use('/api/templates', templatesRoutes);
 app.use('/api/designs',   designsRoutes);
 app.use('/api/ai-link',   aiLinkRoutes);
 app.use('/api/image',     imageGenRoutes);
+app.use('/api/materials', materialsRoutes);
+app.use('/api/settings',  settingsRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));

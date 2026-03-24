@@ -17,6 +17,7 @@ const mimeTypes = {
 const routes = {
   '/ai':     'ai-chat.html',
   '/fusion': 'fusion.html',
+  '/ad-fan': 'ad-fan.html',
 };
 
 const server = http.createServer((req, res) => {
@@ -32,7 +33,7 @@ const server = http.createServer((req, res) => {
       res.end('404 Not Found');
       return;
     }
-    res.writeHead(200, { 'Content-Type': contentType });
+    res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-cache, no-store, must-revalidate' });
     res.end(data);
   });
 });

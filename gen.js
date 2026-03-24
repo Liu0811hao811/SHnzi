@@ -1,0 +1,1 @@
+process.stdout.write(Buffer.from(process.argv[1],"base64").toString("utf8"))

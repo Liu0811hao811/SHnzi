@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>广告扇面 - 扇艺广告</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family:"Microsoft YaHei",sans-serif;
+      background:#f5f6fa; color:#333;
+      display:flex; height:100vh; overflow:hidden;
+    }
+
+    /* ===== 侧边栏 ===== */
+    .sidebar {
+      width:220px; background:#1a1a2e; color:#fff;
+      display:flex; flex-direction:column; flex-shrink:0; height:100vh;
+    }
+    .sidebar-logo {
+      padding:28px 20px 20px; font-size:18px; font-weight:bold;
+      letter-spacing:2px; border-bottom:1px solid #2a2a4a;
+      color:#e0c97f; cursor:pointer;
+    }
+    .sidebar-logo span { font-size:12px;color:#aaa;display:block;font-weight:normal;letter-spacing:1px;margin-top:4px; }
+    .sidebar nav { flex:1; padding:16px 0; }
+    .nav-section-title { font-size:11px;color:#888;letter-spacing:1px;padding:12px 20px 6px;text-transform:uppercase; }
+    .nav-item {
+      display:flex; align-items:center; gap:12px;
+      padding:12px 20px; cursor:pointer; transition:background 0.2s;
+      font-size:14px; border-left:3px solid transparent;
+      text-decoration:none; color:#fff;
+    }
+    .nav-item:hover { background:#2a2a4a; }
+    .nav-item.active { background:#16213e; border-left-color:#e0c97f; color:#e0c97f; }
+    .nav-item .icon { font-size:18px; width:22px; text-align:center; }
+    .sidebar-footer { padding:16px 20px; border-top:1px solid #2a2a4a; font-size:12px; color:#888; }
+
+    /* ===== 主区域 ===== */
+    .main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+    .topbar {
+      background:#fff; padding:0 32px; height:60px;
+      display:flex; align-items:center; justify-content:space-between;
+      border-bottom:1px solid #e8e8e8; flex-shrink:0;
+    }
+    .topbar-title { font-size:18px; font-weight:bold; color:#1a1a2e; }
+    .topbar-tip { font-size:12px; color:#aaa; }
+
+    /* ===== 工作区 ===== */
+    .workspace { flex:1; display:flex; overflow:hidden; }
+
+    /* 左面板 */
+    .form-panel {
+      width:280px; flex-shrink:0; background:#fff;
+      border-right:1px solid #e8e8e8; overflow-y:auto;
+      padding:20px 18px 32px;
+    }
+    .panel-title {
+      font-size:14px; font-weight:bold; color:#1a1a2e;
+      margin-bottom:16px; padding-bottom:10px;
+      border-bottom:1px solid #f0f0f0;
+    }
+    .form-group { margin-bottom:14px; }
+    .form-group label {
+      display:block; font-size:11px; color:#888;
+      margin-bottom:5px; font-weight:600; letter-spacing:0.5px;
+      text-transform:uppercase;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width:100%; padding:8px 10px;
+      border:1px solid #e0e0e0; border-radius:6px;
+      font-size:13px; font-family:inherit; outline:none;
+      transition:border-color 0.2s; background:#fff; color:#333;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus { border-color:#e0c97f; }
+    .form-group textarea { height:60px; resize:vertical; line-height:1.5; }
+
+    /* 模板列表 */
+    .tpl-list {
+      border:1px solid #e0e0e0; border-radius:6px;
+      overflow:hidden; max-height:160px; overflow-y:auto;
+    }
+    .tpl-item {
+      display:flex; align-items:center; gap:8px;
+      padding:7px 10px; cursor:pointer; transition:background 0.15s;
+      border-bottom:1px solid #f4f4f4;
+    }
+    .tpl-item:last-child { border-bottom:none; }
+    .tpl-item:hover { background:#fafafa; }
+    .tpl-item.active { background:#fffbeb; border-left:2px solid #e0c97f; }
+    .tpl-none-icon { font-size:18px; width:32px; text-align:center; flex-shrink:0; }
+    .tpl-thumb { width:32px; height:32px; border-radius:3px; object-fit:contain; background:#f0f0f0; flex-shrink:0; }
+    .tpl-file-icon { width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+    .tpl-name { font-size:11px; color:#444; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .tpl-empty { padding:16px 10px; font-size:12px; color:#bbb; text-align:center; display:none; }
+
+    /* 促销列表 */
+    .promo-list { display:flex; flex-direction:column; gap:6px; }
+    .promo-row { display:flex; align-items:center; gap:6px; }
+    .promo-row input { flex:1; }
+    .promo-del {
+      flex-shrink:0; width:24px; height:24px; border-radius:4px;
+      border:1px solid #ddd; background:#fff; cursor:pointer;
+      font-size:14px; color:#999; display:flex; align-items:center; justify-content:center;
+      line-height:1;
+    }
+    .promo-del:hover { background:#fff0f0; border-color:#ffaaaa; color:#e00; }
+    .promo-add {
+      margin-top:4px; padding:5px 10px; border-radius:4px;
+      border:1px dashed #d0c080; background:#fffbeb; color:#b08000;
+      font-size:12px; cursor:pointer; width:100%; font-family:inherit;
+    }
+    .promo-add:hover { background:#fff5d0; }
+
+    /* Logo 上传 */
+    .logo-upload-area {
+      border:1px dashed #e0e0e0; border-radius:6px; padding:10px;
+      text-align:center; cursor:pointer; transition:border-color 0.2s;
+      position:relative; overflow:hidden;
+    }
+    .logo-upload-area:hover { border-color:#e0c97f; }
+    .logo-upload-area input[type=file] {
+      position:absolute; top:0; left:0; width:100%; height:100%;
+      opacity:0; cursor:pointer;
+    }
+    .logo-preview { max-height:60px; max-width:100%; border-radius:4px; display:none; }
+    .logo-tip { font-size:11px; color:#bbb; }
+
+    /* 分割线 */
+    .divider { border:none; border-top:1px solid #f0f0f0; margin:16px 0; }
+
+    /* 生成按钮 */
+    .gen-btn {
+      width:100%; padding:11px; border-radius:6px; border:none;
+      background:#1a1a2e; color:#e0c97f; font-weight:bold;
+      font-size:14px; font-family:inherit; cursor:pointer;
+      transition:opacity 0.2s; margin-top:4px;
+    }
+    .gen-btn:hover { opacity:0.85; }
+    .gen-btn:disabled { opacity:0.5; cursor:not-allowed; }
+
+    /* ===== 右侧预览区 ===== */
+    .preview-panel {
+      flex:1; display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      background:#f0f2f6; padding:24px; gap:16px;
+    }
+    .preview-box {
+      max-width:100%; max-height:calc(100vh - 180px);
+      display:flex; align-items:center; justify-content:center;
+    }
+    #resultImg {
+      max-width:100%; max-height:calc(100vh - 200px);
+      border-radius:8px; box-shadow:0 4px 24px rgba(0,0,0,0.18);
+      display:none;
+    }
+    .preview-empty {
+      text-align:center; color:#bbb;
+    }
+    .preview-empty .ei { font-size:56px; display:block; margin-bottom:12px; }
+    .preview-empty p { font-size:14px; }
+
+    .loading-wrap {
+      display:none; flex-direction:column; align-items:center; gap:16px;
+      color:#999; font-size:14px;
+    }
+    .spinner {
+      width:40px; height:40px; border:3px solid #e8e8e8;
+      border-top-color:#e0c97f; border-radius:50%;
+      animation:spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    .result-actions {
+      display:none; gap:12px;
+    }
+    .btn {
+      padding:9px 22px; border-radius:6px; border:none;
+      cursor:pointer; font-size:13px; font-family:inherit; transition:opacity 0.2s;
+    }
+    .btn:hover { opacity:0.85; }
+    .btn-primary { background:#e0c97f; color:#1a1a2e; font-weight:bold; }
+    .btn-outline { background:#fff; border:1px solid #ddd; color:#555; }
+
+    .error-msg { color:#e00; font-size:13px; display:none; }
+  </style>
+</head>
+<body>
+
+<!-- 侧边栏 -->
+<div class="sidebar">
+  <div class="sidebar-logo" onclick="location.href='/'">
+    扇艺广告
+    <span>Fan Art Studio</span>
+  </div>
+  <nav>
+    <div class="nav-section-title">设计工具</div>
+    <a class="nav-item" href="/customize.html">
+      <span class="icon">✏️</span>在线定制
+    </a>
+    <a class="nav-item active" href="/ad-fan">
+      <span class="icon">📢</span>广告扇面
+    </a>
+    <a class="nav-item" href="/fusion">
+      <span class="icon">🎨</span>图像融合
+    </a>
+    <a class="nav-item" href="/ai">
+      <span class="icon">💬</span>AI 咨询
+    </a>
+  </nav>
+  <div class="sidebar-footer" id="userInfo">未登录</div>
+</div>
+
+<!-- 主内容 -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">广告扇面生成</div>
+    <div class="topbar-tip">火山引擎氛围背景 · 广告版面排版 · 自动合成扇面</div>
+  </div>
+
+  <div class="workspace">
+
+    <!-- 左侧表单 -->
+    <div class="form-panel">
+      <div class="panel-title">广告内容</div>
+
+      <!-- 模板选择 -->
+      <div class="form-group">
+        <label>扇面模板</label>
+        <div class="tpl-list" id="tplList">
+          <div class="tpl-item active" id="tplNone">
+            <span class="tpl-none-icon">✏️</span>
+            <span class="tpl-name">不使用模板（直接输出）</span>
+          </div>
+          <div class="tpl-empty" id="tplEmpty">暂无已上传模板</div>
+        </div>
+      </div>
+
+      <!-- 背景风格 -->
+      <div class="form-group">
+        <label>背景风格</label>
+        <select id="f-bgstyle">
+          <option value="festive">喜庆橙红（开业·节庆）</option>
+          <option value="business">商务深蓝（企业·金融）</option>
+          <option value="elegant">典雅深红（中式·高端）</option>
+        </select>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- 公司名 -->
+      <div class="form-group">
+        <label>公司 / 品牌名称</label>
+        <input type="text" id="f-company" placeholder="如：牙博仕口腔" maxlength="20" />
+      </div>
+
+      <!-- 大标题 -->
+      <div class="form-group">
+        <label>大标题</label>
+        <input type="text" id="f-headline" placeholder="如：即将开业" maxlength="10" />
+      </div>
+
+      <!-- 副标题 -->
+      <div class="form-group">
+        <label>副标题</label>
+        <input type="text" id="f-sub" placeholder="如：开业期间优惠活动如下" maxlength="24" />
+      </div>
+
+      <hr class="divider" />
+
+      <!-- 促销项目 -->
+      <div class="form-group">
+        <label>促销项目（最多8条）</label>
+        <div class="promo-list" id="promoList"></div>
+        <button class="promo-add" id="promoAddBtn">＋ 添加促销项目</button>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- 电话 -->
+      <div class="form-group">
+        <label>联系电话</label>
+        <input type="text" id="f-phone" placeholder="如：138-0000-0000" maxlength="30" />
+      </div>
+
+      <!-- 地址 -->
+      <div class="form-group">
+        <label>门店地址</label>
+        <input type="text" id="f-address" placeholder="如：某某路123号" maxlength="40" />
+      </div>
+
+      <!-- 二维码 -->
+      <div class="form-group">
+        <label>二维码内容（选填）</label>
+        <input type="text" id="f-qr" placeholder="输入链接或文字，自动生成二维码" maxlength="200" />
+      </div>
+
+      <hr class="divider" />
+
+      <!-- LOGO 上传 -->
+      <div class="form-group">
+        <label>品牌 LOGO（选填）</label>
+        <div class="logo-upload-area" id="logoArea">
+          <input type="file" id="logoFile" accept="image/*" />
+          <img id="logoPreview" class="logo-preview" alt="logo" />
+          <div class="logo-tip" id="logoTip">点击上传 LOGO 图片</div>
+        </div>
+      </div>
+
+      <!-- 生成按钮 -->
+      <button class="gen-btn" id="genBtn">生成广告扇面</button>
+      <div class="error-msg" id="errorMsg"></div>
+    </div>
+
+    <!-- 右侧预览 -->
+    <div class="preview-panel">
+      <div class="preview-box">
+        <div class="preview-empty" id="emptyHint">
+          <span class="ei">📢</span>
+          <p>填写广告内容后点击生成</p>
+        </div>
+        <div class="loading-wrap" id="loadingWrap">
+          <div class="spinner"></div>
+          <span id="loadingTip">正在生成广告扇面…</span>
+        </div>
+        <img id="resultImg" alt="生成结果" />
+      </div>
+      <div class="result-actions" id="resultActions">
+        <a class="btn btn-primary" id="dlPng" download="ad-fan.png">下载 PNG</a>
+        <a class="btn btn-outline" id="dlPdf" target="_blank">下载 PDF</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const API   = 'http://network.ipyingshe.net';
+  const token = localStorage.getItem('token');
+  const currentUser = localStorage.getItem('currentUser');
+
+  if (!token) { location.href = 'login.html'; }
+  if (currentUser) document.getElementById('userInfo').textContent = currentUser;
+
+  // ===== 模板管理 =====
+  let selectedTemplate = null;
+
+  async function loadTemplates() {
+    try {
+      const res = await fetch(`${API}/api/templates`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!res.ok) return;
+      const list = await res.json();
+      const tplList  = document.getElementById('tplList');
+      const tplEmpty = document.getElementById('tplEmpty');
+      if (!list || list.length === 0) { tplEmpty.style.display = 'block'; return; }
+      tplEmpty.style.display = 'none';
+      const PREVIEW_EXT = ['.png', '.jpg', '.jpeg'];
+      list.forEach(tpl => {
+        const ext  = tpl.name.substring(tpl.name.lastIndexOf('.')).toLowerCase();
+        const item = document.createElement('div');
+        item.className = 'tpl-item tpl-dyn';
+        item.dataset.id = tpl.id;
+        item.innerHTML = PREVIEW_EXT.includes(ext)
+          ? `<img class="tpl-thumb" src="${tpl.url}" crossorigin="anonymous"><span class="tpl-name" title="${tpl.name}">${tpl.name}</span>`
+          : `<span class="tpl-file-icon">${ext==='.pdf'?'📄':'🖼️'}</span><span class="tpl-name" title="${tpl.name}">${tpl.name}</span>`;
+        item.addEventListener('click', () => {
+          document.querySelectorAll('.tpl-item').forEach(el => el.classList.remove('active'));
+          item.classList.add('active');
+          selectedTemplate = tpl;
+        });
+        tplList.appendChild(item);
+      });
+    } catch (e) { console.warn('加载模板失败', e); }
+  }
+
+  document.getElementById('tplNone').addEventListener('click', () => {
+    document.querySelectorAll('.tpl-item').forEach(el => el.classList.remove('active'));
+    document.getElementById('tplNone').classList.add('active');
+    selectedTemplate = null;
+  });
+
+  // ===== 促销项目动态列表 =====
+  const promoList = document.getElementById('promoList');
+
+  function addPromoRow(val = '') {
+    if (promoList.children.length >= 8) return;
+    const row = document.createElement('div');
+    row.className = 'promo-row';
+    row.innerHTML = `
+      <input type="text" placeholder="如：免费洁牙 / 9折优惠" maxlength="20" value="${val}" />
+      <button class="promo-del" title="删除">×</button>`;
+    row.querySelector('.promo-del').addEventListener('click', () => row.remove());
+    promoList.appendChild(row);
+  }
+
+  document.getElementById('promoAddBtn').addEventListener('click', () => addPromoRow());
+  // 默认添加两条空行
+  addPromoRow(); addPromoRow();
+
+  // ===== LOGO 上传 =====
+  let logoBase64 = '';
+  document.getElementById('logoFile').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      logoBase64 = ev.target.result;
+      const preview = document.getElementById('logoPreview');
+      preview.src = logoBase64;
+      preview.style.display = 'block';
+      document.getElementById('logoTip').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // ===== 生成主逻辑 =====
+  function setLoading(on, tip = '正在生成广告扇面…') {
+    document.getElementById('emptyHint').style.display    = on ? 'none'  : 'none';
+    document.getElementById('loadingWrap').style.display  = on ? 'flex'  : 'none';
+    document.getElementById('loadingTip').textContent     = tip;
+    document.getElementById('resultImg').style.display    = 'none';
+    document.getElementById('resultActions').style.display= 'none';
+    document.getElementById('errorMsg').style.display     = 'none';
+    document.getElementById('genBtn').disabled            = on;
+  }
+
+  function showResult(url, pdfUrl) {
+    document.getElementById('loadingWrap').style.display   = 'none';
+    document.getElementById('resultImg').src               = url;
+    document.getElementById('resultImg').style.display     = 'block';
+    document.getElementById('resultActions').style.display = 'flex';
+    document.getElementById('dlPng').href                  = url;
+    if (pdfUrl) {
+      document.getElementById('dlPdf').href = pdfUrl;
+      document.getElementById('dlPdf').style.display = 'inline-block';
+    } else {
+      document.getElementById('dlPdf').style.display = 'none';
+    }
+  }
+
+  function showError(msg) {
+    document.getElementById('loadingWrap').style.display = 'none';
+    document.getElementById('emptyHint').style.display   = 'block';
+    const el = document.getElementById('errorMsg');
+    el.textContent = '生成失败：' + msg;
+    el.style.display = 'block';
+    document.getElementById('genBtn').disabled = false;
+  }
+
+  document.getElementById('genBtn').addEventListener('click', async () => {
+    const companyName = document.getElementById('f-company').value.trim();
+    const headline    = document.getElementById('f-headline').value.trim();
+    const subheadline = document.getElementById('f-sub').value.trim();
+    const phone       = document.getElementById('f-phone').value.trim();
+    const address     = document.getElementById('f-address').value.trim();
+    const qrText      = document.getElementById('f-qr').value.trim();
+    const bgStyle     = document.getElementById('f-bgstyle').value;
+
+    if (!companyName && !headline) {
+      document.getElementById('errorMsg').textContent = '请至少填写公司名称或大标题';
+      document.getElementById('errorMsg').style.display = 'block';
+      return;
+    }
+
+    const promoItems = Array.from(promoList.querySelectorAll('input'))
+      .map(el => el.value.trim()).filter(Boolean);
+
+    setLoading(true, '火山引擎生成背景中…');
+
+    const body = {
+      adConfig: { companyName, headline, subheadline, promoItems, phone, address, qrText, bgStyle, logoBase64 }
+    };
+    if (selectedTemplate) body.templateUrl = selectedTemplate.url;
+
+    try {
+      const res = await fetch(`${API}/api/image/generate-ad-fan`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body:    JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) { showError(data.error || '服务器错误'); return; }
+      const img = data.images?.[0];
+      if (!img?.url) { showError('未收到图片'); return; }
+      showResult(img.url, img.cdrUrl);
+    } catch (e) {
+      showError(e.message);
+    }
+  });
+
+  // ===== 初始化 =====
+  loadTemplates();
+</script>
+</body>
+</html>
