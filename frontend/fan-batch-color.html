@@ -553,6 +553,35 @@ const API = 'http://network.ipyingshe.net';
             '  ' + (spPass ? '=> 满足条件，会被染色' : '=> 不满足，请调整参数')
           );
 
+          // ── 扇边保护：对边界像素做膨胀，保留扇形轮廓白色边缘 ──────
+          // 边界像素 = 透明像素 OR 非白色不透明像素（扇骨灰线等）
+          // 仅靠透明像素会导致扇圆弧与扇骨交汇处缺乏保护，产生断口
+          const EDGE_W = 3;
+          const edgeMask = new Uint8Array(W * H);
+          // 水平方向膨胀：每个边界像素向左右各扩展 EDGE_W
+          for (let ey = 0; ey < H; ey++) {
+            for (let ex = 0; ex < W; ex++) {
+              const ei4 = (ey * W + ex) * 4;
+              const ea  = px[ei4 + 3];
+              // 透明 OR 非白色不透明（灰色扇骨、深色轮廓等）
+              const isBoundary = ea < 128 || (ea >= 128 && (px[ei4] < whiteMin || px[ei4+1] < whiteMin || px[ei4+2] < whiteMin));
+              if (isBoundary) {
+                const x0 = Math.max(0, ex - EDGE_W), x1 = Math.min(W - 1, ex + EDGE_W);
+                for (let nx = x0; nx <= x1; nx++) edgeMask[ey * W + nx] = 1;
+              }
+            }
+          }
+          // 垂直方向膨胀：对已标记像素向上下再扩展 EDGE_W
+          const tmpEdge = edgeMask.slice();
+          for (let ex = 0; ex < W; ex++) {
+            for (let ey = 0; ey < H; ey++) {
+              if (tmpEdge[ey * W + ex]) {
+                const y0 = Math.max(0, ey - EDGE_W), y1 = Math.min(H - 1, ey + EDGE_W);
+                for (let ny = y0; ny <= y1; ny++) edgeMask[ny * W + ex] = 1;
+              }
+            }
+          }
+
           let changedCount = 0;
 
           // ── 逐行扫描 ──────────────────────────────────────────
@@ -572,6 +601,9 @@ const API = 'http://network.ipyingshe.net';
 
               // 颜色不够白（扇骨/轮廓）：跳过
               if (r < whiteMin || g < whiteMin || b < whiteMin) continue;
+
+              // 扇边保护：透明边界附近的白色像素不染色，保留白色扇边
+              if (edgeMask[y * W + x]) continue;
 
               // 两个条件均满足 → 替换为 #111111
               px[i]     = TARGET_R;

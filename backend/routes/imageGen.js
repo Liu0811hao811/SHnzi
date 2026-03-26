@@ -158,6 +158,48 @@ async function volcRequest({ service, host, region, action, version, body }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// 用 DashScope Qwen LLM 将用户业务描述智能转换为图片生成提示词
+// ─────────────────────────────────────────────────────────────────────
+const STYLE_LABEL = {
+  photo:        '写实商业摄影风格，精致光影，真实质感',
+  illustration: '精美商业插画风格，色彩鲜艳，笔触细腻',
+  chinese:      '中国传统工笔画风格，古典意境，晕染层次',
+  business:     '现代简约商务风格，干净利落，高端大气',
+};
+
+async function optimizeImagePrompt(userText, apiKey, genStyle = '') {
+  if (!apiKey) return null;
+  const styleHint = STYLE_LABEL[genStyle] ? `- 画面风格必须是：${STYLE_LABEL[genStyle]}` : '- 风格：商业广告感，色彩明亮鲜艳';
+  const systemMsg = `你是顶级商业广告视觉设计师，同时精通文生图AI提示词写作。
+用户会描述他们的业务类型或广告需求，你需要将其转换为专业、精准、富有设计感的图片生成提示词。
+要求：
+- 必须围绕用户的具体业务/产品展开，提取核心视觉元素（产品造型、材质、色彩、使用场景、行业氛围）
+- 描述要具体精准：包含构图方式、色彩搭配、光影氛围、画面层次感等设计细节
+- 有设计感：使用专业的视觉设计语言，体现商业美感与品牌调性
+${styleHint}
+- 画面要有适当留白，方便后期叠加文字
+- 不要出现人物脸部，不要出现任何文字
+- 只输出提示词本身，不需要任何解释或前缀，不超过80个汉字`;
+  try {
+    const res = await fetch(
+      'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation',
+      {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'qwen-turbo',
+          input: { messages: [{ role: 'system', content: systemMsg }, { role: 'user', content: userText }] },
+          parameters: { max_tokens: 150, temperature: 0.7 },
+        }),
+      }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.output?.text?.trim() || null;
+  } catch { return null; }
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // 调用火山引擎文生图
 // ─────────────────────────────────────────────────────────────────────
 async function volcT2I(prompt, width = 1024, height = 1024, genStyle = '') {
@@ -475,7 +517,7 @@ async function saveToUploads(jimpImg, host) {
  * 纯文生图（无模板）
  */
 router.post('/generate', async (req, res) => {
-  const { prompt, size = '1024x1024', merchantInfo, genStyle = '' } = req.body || {};
+  const { prompt, rawScene, size = '1024x1024', merchantInfo, genStyle = '' } = req.body || {};
   if (!prompt?.trim()) return res.status(400).json({ message: '请输入提示词' });
 
   const [width, height] = size.replace('*', 'x').split('x').map(Number);
@@ -483,7 +525,19 @@ router.post('/generate', async (req, res) => {
 
   try {
     console.log(`\n▶ 文生图  prompt="${prompt}"  size=${width}x${height}  style=${genStyle||'默认'}`);
-    let imgUrl = await volcT2I(prompt, width, height, genStyle);
+    // 用原始话术（rawScene）给 Qwen 优化，避免风格后缀干扰
+    const DASHSCOPE_KEY_GEN = process.env.DASHSCOPE_KEY || '';
+    const textForQwen = (rawScene || '').trim() || prompt.trim();
+    let optimizedPrompt = null;
+    try {
+      optimizedPrompt = await optimizeImagePrompt(textForQwen, DASHSCOPE_KEY_GEN, genStyle);
+      if (optimizedPrompt) console.log(`  ✓ 优化后提示词：${optimizedPrompt}`);
+    } catch (e) {
+      console.warn('  ⚠ 提示词优化失败，使用原始提示词:', e.message);
+    }
+    // Qwen 优化结果直接传给 volcT2I，volcT2I 内部会追加风格后缀
+    const finalPrompt = optimizedPrompt || prompt;
+    let imgUrl = await volcT2I(finalPrompt, width, height, genStyle);
     let cdrUrl = null;
 
     // 无模板场景：若有商家信息则在图上叠加文字
@@ -507,7 +561,7 @@ router.post('/generate', async (req, res) => {
     }
 
     console.log('  ✓ 完成');
-    res.json({ images: [{ url: imgUrl, cdrUrl }] });
+    res.json({ images: [{ url: imgUrl, cdrUrl }], optimizedPrompt });
   } catch (err) {
     console.error('  ✗', err.message);
     res.status(500).json({ message: err.message });
@@ -566,9 +620,21 @@ router.post('/inpaint', async (req, res) => {
     else if (ratio <= 0.72) { t2iW = 720;  t2iH = 1280; }
     console.log(`  包围盒比例 ${ratio.toFixed(2)} → T2I ${t2iW}x${t2iH}`);
 
-    // 3. 文生图
-    console.log('  [3/3] 火山引擎文生图…');
-    const aiUrl = await volcT2I(prompt, t2iW, t2iH);
+    // 3. 文生图：先用 Qwen LLM 将用户描述智能转换为画面提示词，再生成背景图
+    console.log('  [3/3] Qwen 优化提示词…');
+    const DASHSCOPE_KEY = process.env.DASHSCOPE_KEY || '';
+    let optimizedPrompt = null;
+    try {
+      optimizedPrompt = await optimizeImagePrompt(prompt.trim(), DASHSCOPE_KEY, genStyle);
+      if (optimizedPrompt) console.log(`  ✓ 优化后提示词：${optimizedPrompt}`);
+    } catch (e) {
+      console.warn('  ⚠ 提示词优化失败，使用兜底方案:', e.message);
+    }
+    // 优化失败时降级到固定前后缀拼接
+    const finalPrompt = optimizedPrompt
+      || `广告扇面背景设计，平面设计风格，适合商业印刷，${prompt.trim()}，色彩明亮，构图简洁大气，无人物`;
+    console.log('  火山引擎文生图…');
+    const aiUrl = await volcT2I(finalPrompt, t2iW, t2iH);
 
     // 4. 合成
     console.log('  合成最终图片…');
@@ -868,6 +934,7 @@ router.post('/composite-template', async (req, res) => {
     let cleanCompositeUrl = null;
     let initialFraction   = null;
     let textLines         = [];
+    let imageElementsUsed = null;
 
     console.log(`  [composite-template] merchantInfo:`, merchantInfo);
     console.log(`  [composite-template] hasContent:`, hasContent(merchantInfo));
@@ -913,10 +980,20 @@ router.post('/composite-template', async (req, res) => {
       aiBuf     = posterBuf;
       textLines = textLayout || [];
 
-      // 叠加用户上传的图片元素（如 LOGO）
+      // 叠加用户上传的图片元素（如 LOGO），默认定位到手机号上方
       if (imageElements && imageElements.length > 0) {
         console.log(`  叠加用户图片元素 ${imageElements.length} 个…`);
-        aiBuf = await overlayImageElements(aiBuf, imageElements, bbW, bbH);
+        // 首次合成：自动定位到手机号左上方（手机号 Y≈78%，图片中心 Y≈63%，X≈22%）
+        const positioned = merchantInfo?.phone
+          ? imageElements.map(el => ({ ...el, x: 0.22, y: 0.63 }))
+          : imageElements;
+        imageElementsUsed = positioned.map(el => ({
+          x: el.x, y: el.y,
+          width: el.width || 0.18,
+          height: el.height || null,
+          rotation: el.rotation || 0,
+        }));
+        aiBuf = await overlayImageElements(aiBuf, positioned, bbW, bbH);
       }
     }
     const finalImg = await compositeResult(tplBufOrig, aiBuf, bbox);
@@ -934,6 +1011,7 @@ router.post('/composite-template', async (req, res) => {
       initialFraction,
       cdrUrl,
       textLines: textLines || [],
+      imageElementsUsed,
     });
   } catch (err) {
     console.error('  ✗ composite-template:', err.message);

@@ -265,6 +265,9 @@
       transition:background .15s;
     }
     .merchant-img-upload-label:hover { background:#fffbeb; }
+    .merchant-img-upload-label.dragover {
+      background:#fffbeb; border-color:#c9a227; border-style:solid; color:#c9a227;
+    }
     .merchant-img-preview { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
     .merchant-img-thumb {
       position:relative; width:48px; height:48px;
@@ -587,6 +590,15 @@
     }
     .msg-img-wrap { line-height: 0; }
     .msg-img-tip { font-size: 11px; color: #bbb; margin-top: 4px; line-height: 1.4; }
+    .prompt-info {
+      font-size: 12px; line-height: 1.6; margin-bottom: 8px;
+      background: #f7f7f7; border-radius: 6px; padding: 8px 10px;
+      border-left: 3px solid #e0c97f;
+    }
+    .prompt-info-row { display: flex; gap: 6px; }
+    .prompt-info-label { color: #999; white-space: nowrap; flex-shrink: 0; }
+    .prompt-info-text { color: #444; word-break: break-all; }
+    .prompt-info-row + .prompt-info-row { margin-top: 4px; }
     .composite-download-btn {
       display: inline-block; margin-top: 6px;
       background: #f0f0f0; border: none; border-radius: 6px;
@@ -661,10 +673,11 @@
 
     /* ===== 双图模式按钮 ===== */
     .dual-mode-btn {
-      font-size: 12px;
-      font-weight: 700;
-      min-width: 36px;
-      letter-spacing: -0.5px;
+      font-size: 11px;
+      font-weight: 600;
+      min-width: 80px;
+      letter-spacing: 0;
+      padding: 0 8px;
     }
     .dual-mode-btn.active {
       border-color: #c9a227;
@@ -732,7 +745,7 @@
     .tpl-card:hover { border-color: #e0c97f; }
     .tpl-card.active { border-color: #c9a227; box-shadow: 0 0 0 2px rgba(201,162,39,0.25); }
     .tpl-card img {
-      width: 100%; aspect-ratio: 1/1; object-fit: cover;
+      width: 100%; aspect-ratio: 3/4; object-fit: contain;
       display: block; background: #f5f5f5;
     }
     .tpl-card-name {
@@ -1177,7 +1190,7 @@
             <div class="merchant-label" style="margin-top:4px;">叠加图片（LOGO等）</div>
             <label class="merchant-img-upload-label" id="merchantImgUploadLabel">
               <input type="file" id="merchantImgInput" accept="image/*" multiple style="display:none" onchange="handleMerchantImgUpload(this)">
-              + 上传图片
+              + 点击上传 / 拖拽图片到此
             </label>
             <div id="merchantImgPreview" class="merchant-img-preview"></div>
             <div class="merchant-hint">填写后生成图片将自动叠加文字</div>
@@ -1203,7 +1216,7 @@
             <div class="merchant-label" style="margin-top:4px;">叠加图片（LOGO等）</div>
             <label class="merchant-img-upload-label" id="merchantImgUploadLabel2">
               <input type="file" id="merchantImgInput2" accept="image/*" multiple style="display:none" onchange="handleMerchantImgUpload2(this)">
-              📎 点击上传图片
+              📎 点击上传 / 拖拽图片到此
             </label>
             <div id="merchantImgPreview2" class="merchant-img-preview"></div>
             <div class="merchant-hint">不填则图2只展示图片，不叠加文字</div>
@@ -1264,7 +1277,7 @@
             <button class="icon-btn" id="uploadImgBtn" title="上传参考图片">📷</button>
             <input type="file" id="imgUploadInput" accept="image/*" multiple style="display:none;">
             <button class="icon-btn" id="modeBtn" title="切换生成图片模式">🎨</button>
-            <button class="icon-btn dual-mode-btn" id="dualModeBtn" title="当前：单图模式（点击切换为双图）" style="display:none;">×1</button>
+            <button class="icon-btn dual-mode-btn" id="dualModeBtn" title="当前：单面（双面一样）（点击切换）" style="display:none;">单面（双面一样）</button>
             <button class="icon-btn" id="openTplBtn" title="选择扇子模板">📋</button>
             <button class="send-btn" id="sendBtn">➤</button>
           </div>
@@ -1506,6 +1519,34 @@
       merchantUploadedImages2 = merchantUploadedImages2.filter(img => img.id !== id);
       renderMerchantImgPreview2();
     }
+
+    // ── 拖拽上传：正面 & 反面 ──
+    function setupImgDragDrop(labelId, imgList, renderFn) {
+      const label = document.getElementById(labelId);
+      if (!label) return;
+      label.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        label.classList.add('dragover');
+      });
+      label.addEventListener('dragleave', (e) => {
+        if (!label.contains(e.relatedTarget)) label.classList.remove('dragover');
+      });
+      label.addEventListener('drop', (e) => {
+        e.preventDefault();
+        label.classList.remove('dragover');
+        const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+        files.forEach(file => {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            imgList.push({ id: Date.now() + Math.random(), dataUrl: ev.target.result, name: file.name });
+            renderFn();
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+    }
+    setupImgDragDrop('merchantImgUploadLabel',  merchantUploadedImages,  renderMerchantImgPreview);
+    setupImgDragDrop('merchantImgUploadLabel2', merchantUploadedImages2, renderMerchantImgPreview2);
 
     function addSubTitleRow(val) {
       const rows = document.getElementById('subTitleRows');
@@ -1925,8 +1966,8 @@
       dualMode = on;
       const btn = document.getElementById('dualModeBtn');
       btn.classList.toggle('active', on);
-      btn.textContent = on ? '×2' : '×1';
-      btn.title = on ? '当前：双图模式（点击切换为单图）' : '当前：单图模式（点击切换为双图）';
+      btn.textContent = on ? '双面（双面不同）' : '单面（双面一样）';
+      btn.title = on ? '当前：双面（双面不同）（点击切换）' : '当前：单面（双面一样）（点击切换）';
       document.getElementById('merchantPanel2').style.display = on ? '' : 'none';
       document.getElementById('merchantTitle1').textContent = on ? '🏪 正面信息' : '🏪 商家信息';
     }
@@ -2163,6 +2204,7 @@
         initialFraction:   data.initialFraction != null ? data.initialFraction : null,
         cdrUrl:            data.cdrUrl            || null,
         textLines:         data.textLines         || [],
+        imageElementsUsed: data.imageElementsUsed || null,
       };
     }
 
@@ -2518,11 +2560,12 @@
         const genSize   = pickT2ISize(fanRatio);
         const genRes    = await fetch(`${API}/api/image/generate`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: genPrompt, size: genSize, genStyle }),
+          body: JSON.stringify({ prompt: genPrompt, rawScene: fullScene, size: genSize, genStyle }),
         });
         const genData = await genRes.json();
         if (!genRes.ok || !genData.images?.[0]) throw new Error(genData.message || '文生图失败');
         let imgUrl = genData.images[0].url;
+        const optimizedPrompt = genData.optimizedPrompt || null;
 
         if (qrUrls.length) {
           onProgress('正在处理二维码…');
@@ -2535,25 +2578,26 @@
         if (qrUrls.length) {
           try { compositeUrl = await compositeQROnFan(compositeUrl, qrUrls, qrInstrs, fanBox); } catch {}
         }
-        return { url: compositeUrl, cleanScaledUrl, cleanCompositeUrl, bbW, bbH, templateUrl, fanBox, initialFraction, cdrUrl, textLines };
+        return { url: compositeUrl, cleanScaledUrl, cleanCompositeUrl, bbW, bbH, templateUrl, fanBox, initialFraction, cdrUrl, textLines, optimizedPrompt };
 
       } else {
         onProgress('正在生成图片，请稍候…');
         const genPrompt = buildEnrichedPrompt(fullScene);
         const genRes    = await fetch(`${API}/api/image/generate`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: genPrompt, size: '1024x1024', merchantInfo, genStyle }),
+          body: JSON.stringify({ prompt: genPrompt, rawScene: fullScene, size: '1024x1024', merchantInfo, genStyle }),
         });
         const genData = await genRes.json();
         if (!genRes.ok || !genData.images?.[0]) throw new Error(genData.message || '文生图失败');
         let imgUrl = genData.images[0].url;
         const cdrUrl = genData.images[0].cdrUrl || null;
+        const optimizedPrompt = genData.optimizedPrompt || null;
 
         if (qrUrls.length) {
           onProgress('正在处理二维码…');
           try { imgUrl = await compositeQROnFan(imgUrl, qrUrls, qrInstrs); } catch {}
         }
-        return { url: imgUrl, cleanScaledUrl: null, cleanCompositeUrl: null, bbW: null, bbH: null, templateUrl: null, fanBox: null, initialFraction: null, cdrUrl };
+        return { url: imgUrl, cleanScaledUrl: null, cleanCompositeUrl: null, bbW: null, bbH: null, templateUrl: null, fanBox: null, initialFraction: null, cdrUrl, optimizedPrompt };
       }
     }
 
@@ -2623,7 +2667,15 @@
           // 把当次商家信息快照附在结果上，供编辑器使用
           result.merchantInfoSnap = merchantInfo;
           result.textLinesSnap = result.textLines || [];
-          result.imageElementsSnap = imageElements;
+          // 用后端实际使用的坐标同步图片元素位置，确保编辑器与生成图位置一致
+          if (result.imageElementsUsed && result.imageElementsUsed.length > 0) {
+            result.imageElementsSnap = imageElements.map((el, i) => {
+              const used = result.imageElementsUsed[i];
+              return used ? { ...el, x: used.x, y: used.y, width: used.width || el.width, height: used.height || el.height, rotation: used.rotation ?? el.rotation } : el;
+            });
+          } else {
+            result.imageElementsSnap = imageElements;
+          }
           results.push(result);
         }
 
@@ -2634,7 +2686,13 @@
           const safe = url.replace(/'/g, "\\'");
           const tip  = tplUrl ? '扇面合成图 · 点击放大' : 'AI 生成图 · 点击放大';
           const fname = tplUrl ? 'fan-result.png' : 'ai-image.png';
+          const promptInfoHtml = r0.optimizedPrompt ? `
+            <div class="prompt-info">
+              <div class="prompt-info-row"><span class="prompt-info-label">你的话术：</span><span class="prompt-info-text">${escapeHtml(promptText)}</span></div>
+              <div class="prompt-info-row"><span class="prompt-info-label">优化后：</span><span class="prompt-info-text">${escapeHtml(r0.optimizedPrompt)}</span></div>
+            </div>` : '';
           bubble.innerHTML = `
+            ${promptInfoHtml}
             <div class="msg-img-wrap">
               <img src="${url}" class="composite-result-img"
                    alt="${escapeHtml(promptText)}" onclick="openLightbox('${safe}')">
@@ -2694,6 +2752,19 @@
           const fname = tplUrl ? 'fan-result' : 'ai-image';
           const wrap  = document.createElement('div');
           wrap.className = 'dual-results';
+          // 双图共用第一张图的优化话术展示
+          const firstOptimized = results[0]?.optimizedPrompt;
+          if (firstOptimized) {
+            const promptInfoEl = document.createElement('div');
+            promptInfoEl.className = 'prompt-info';
+            promptInfoEl.innerHTML = `
+              <div class="prompt-info-row"><span class="prompt-info-label">你的话术：</span><span class="prompt-info-text">${escapeHtml(promptText)}</span></div>
+              <div class="prompt-info-row"><span class="prompt-info-label">优化后：</span><span class="prompt-info-text">${escapeHtml(firstOptimized)}</span></div>`;
+            bubble.innerHTML = '';
+            bubble.appendChild(promptInfoEl);
+          } else {
+            bubble.innerHTML = '';
+          }
           results.forEach((r, i) => {
             const url   = r.url;
             const safe  = url.replace(/'/g, "\\'");
@@ -2743,7 +2814,6 @@
 
             wrap.appendChild(item);
           });
-          bubble.innerHTML = '';
           bubble.appendChild(wrap);
 
           // 双图合并编辑按钮（一个按钮同时编辑正面+反面）
@@ -2847,11 +2917,8 @@
                                imgEl, dlBtn, submitBtn, editBtnEl, bubble }) {
       // 单图模式：隐藏面板 Tab
       document.getElementById('tePanelTabs').style.display = 'none';
-      // 有服务端精确 textLines 时用最终图作背景（与外面生成的图一模一样）
-      // 否则用背景底图（无文字）
-      const bgUrl = (providedTextLines && providedTextLines.length > 0)
-        ? compositeUrl
-        : (cleanCompositeUrl || compositeUrl);
+      // 始终用无文字的干净底图作为编辑器背景，文字由编辑器画布元素渲染，避免双重文字
+      const bgUrl = cleanCompositeUrl || cleanScaledUrl || compositeUrl;
       const bbWW = bbW || (fanBox.maxX - fanBox.minX);
       const bbHH = bbH || (fanBox.maxY - fanBox.minY);
 

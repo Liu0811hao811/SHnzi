@@ -234,6 +234,15 @@ async function overlayMerchantText(imageBuf, merchantInfo, fanInfo = {}) {
   const maxW       = Math.round(W * maxWRatio);
   const cx         = W / 2;
 
+  // ── 扇面圆形内切约束：根据每行 Y 动态限制文字最大宽度，防止超出扇形弧形边界 ──
+  const fanR  = Math.min(W, H) * 0.46;  // 圆半径 ≈ 较小边的 46%
+  const fanCy = H * 0.44;               // 圆心 Y ≈ 图片高度 44% 处
+  function getCircleMaxW(y) {
+    const dy = Math.abs(y - fanCy);
+    if (dy >= fanR) return maxW * 0.3;
+    return Math.min(2 * Math.sqrt(fanR * fanR - dy * dy) * 0.86, maxW);
+  }
+
   // 模板模式下文字放大补偿：扇面包围盒嵌入整张模板后会缩小，
   // 用 tplH/H 的比例把字号等比放大，使最终显示尺寸与无模板时一致。
   const scaleMult = (fanInfo.tplH && fanInfo.tplH > H) ? fanInfo.tplH / H : 1;
@@ -253,10 +262,11 @@ async function overlayMerchantText(imageBuf, merchantInfo, fanInfo = {}) {
    *   L2: 细描边 + 轻内光晕
    *   L3: 渐变/实色填充 + 投影
    */
-  function drawStyledText(text, y, fontSize, fontWeight, fillStyle, isShopName) {
+  function drawStyledText(text, xPos, y, fontSize, fontWeight, fillStyle, isShopName, customMaxW, align = 'center') {
     if (!text) return;
+    const mW = customMaxW !== undefined ? customMaxW : maxW;
     ctx.font         = `${fontWeight} ${fontSize}px ${palette.fontFamily}`;
-    ctx.textAlign    = 'center';
+    ctx.textAlign    = align;
     ctx.textBaseline = 'middle';
     ctx.lineJoin     = 'round';
 
@@ -269,8 +279,8 @@ async function overlayMerchantText(imageBuf, merchantInfo, fanInfo = {}) {
     ctx.lineWidth   = glowW;
     ctx.shadowColor = palette.outerGlow;
     ctx.shadowBlur  = glowBlur;
-    ctx.strokeText(text, cx, y, maxW);
-    ctx.strokeText(text, cx, y, maxW); // 二遍叠加增亮
+    ctx.strokeText(text, xPos, y, mW);
+    ctx.strokeText(text, xPos, y, mW); // 二遍叠加增亮
     clearShadow();
 
     // L2
@@ -278,7 +288,7 @@ async function overlayMerchantText(imageBuf, merchantInfo, fanInfo = {}) {
     ctx.lineWidth   = Math.max(1, sw * 0.7);
     ctx.shadowColor = palette.innerGlow;
     ctx.shadowBlur  = fontSize * 0.12;
-    ctx.strokeText(text, cx, y, maxW);
+    ctx.strokeText(text, xPos, y, mW);
     clearShadow();
 
     // L3
@@ -287,7 +297,7 @@ async function overlayMerchantText(imageBuf, merchantInfo, fanInfo = {}) {
     ctx.shadowBlur    = fontSize * 0.16;
     ctx.shadowOffsetX = Math.round(fontSize * 0.02);
     ctx.shadowOffsetY = Math.round(fontSize * 0.06);
-    ctx.fillText(text, cx, y, maxW);
+    ctx.fillText(text, xPos, y, mW);
     clearShadow();
   }
 
@@ -559,63 +569,94 @@ async function overlayMerchantText(imageBuf, merchantInfo, fanInfo = {}) {
   }
 
   // ── 字体大小（乘以 scaleMult 补偿模板缩放）──
-  const shopFontSize = Math.round(safeH * 0.09 * scaleMult);
-  const mainFontSize = Math.round(safeH * 0.075 * scaleMult);
-  const subFontSize  = Math.round(safeH * 0.062 * scaleMult);
-  const cntFontSize  = Math.round(safeH * 0.050 * scaleMult);
-  const lineGap      = Math.round(safeH * 0.025 * scaleMult);
+  const shopFontSize  = Math.round(H * 0.080 * scaleMult);
+  const mainFontSize  = Math.round(H * 0.068 * scaleMult);
+  const subFontSize   = Math.round(H * 0.055 * scaleMult);
+  const cntFontSize   = Math.round(H * 0.045 * scaleMult);
+  const promoFontSize = Math.round(H * 0.048 * scaleMult);
 
-  // ── 排版列表（字重取自风格配置）──
-  const items = [];
-  if (shopName)  items.push({ text: shopName,  size: shopFontSize, weight: palette.shopWeight, style: 'shopgrad', isShop: true });
-  if (shopName && (mainTitle || subTitles.length > 0 || phone || address)) items.push({ type: 'line' });
-  if (mainTitle) items.push({ text: mainTitle, size: mainFontSize, weight: palette.mainWeight, style: 'main' });
-  subTitles.forEach(st => { if (st) items.push({ text: st, size: subFontSize, weight: palette.subWeight, style: 'sub' }); });
-  const contact = [phone, address].filter(Boolean).join('   ');
-  if (contact)   items.push({ text: contact,   size: cntFontSize,  weight: palette.cntWeight,  style: 'contact' });
+  // ── 固定位置（相对于图片尺寸的比例）──
+  const shopY       = Math.round(H * 0.22);   // 店名：顶部居中
+  const decorY      = Math.round(H * 0.29);   // 装饰线：店名下方
+  const mainY       = Math.round(H * 0.38);   // 主标题：中部居中
+  const subStartY   = Math.round(H * 0.47);   // 副标题起始
+  const subDY       = Math.round(H * 0.072);  // 副标题行间距
 
-  // ── 总高度 & 垂直居中 ──
-  let totalH = 0;
-  items.forEach((item, i) => {
-    totalH += item.type === 'line' ? Math.round(safeH * 0.07 * scaleMult) : item.size;
-    if (i < items.length - 1) totalH += lineGap;
-  });
-  // 模板模式放大后用画布高度做压缩上限，无模板保持原有安全区约束
-  const maxFit = scaleMult > 1 ? H * 0.9 : safeH * 0.85;
-  const scale  = (totalH > maxFit) ? maxFit / totalH : 1;
-  const textMidY = safeStartY + safeH * 0.52;
-  let   curY     = textMidY - (totalH * scale) / 2;
+  const promoX      = Math.round(W * 0.73);   // 促销项目：右侧 X
+  const promoStartY = Math.round(H * 0.60);   // 促销起始 Y
+  const promoDY     = Math.round(H * 0.10);   // 促销行间距
 
-  // ── 背景蒙版（根据图片实际亮度自适应，绘制在框线和文字之前）──
-  const scrimPad   = Math.round(safeH * 0.10);
-  const brightness = analyzeBrightness(canvas, Math.round(curY - scrimPad), Math.round(totalH * scale + scrimPad * 2));
-  drawTextScrim(ctx, W, H, Math.round(curY - scrimPad), Math.round(curY + totalH * scale + scrimPad), brightness, palette.decorStyle);
+  const cntX        = Math.round(W * 0.27);   // 联系方式：左侧 X
+  const phoneY      = Math.round(H * 0.78);   // 手机号 Y
+  const addressY    = Math.round(H * 0.85);   // 地址 Y（手机号下方）
 
-  // ── 块框线 ──
-  const borderPad = Math.round(safeH * 0.038);
-  drawBlockBorder(curY - borderPad, curY + totalH * scale + borderPad, maxW * 0.62);
+  const promoItems = (merchantInfo.promoItems || []).filter(Boolean);
 
-  // ── 逐项绘制 ──
-  items.forEach((item, i) => {
-    if (item.type === 'line') {
-      const lineH = Math.round(safeH * 0.07 * scaleMult * scale);
-      drawDecorLine(curY + lineH / 2, maxW * 0.55);
-      curY += lineH;
-    } else {
-      const fs   = Math.round(item.size * scale);
-      const midY = curY + fs / 2;
-      let fillStyle;
-      switch (item.style) {
-        case 'shopgrad': fillStyle = makeGrad(midY, fs, palette.shopGrad); break;
-        case 'main':     fillStyle = palette.mainColor;    break;
-        case 'sub':      fillStyle = palette.subColor;     break;
-        default:         fillStyle = palette.contactColor; break;
-      }
-      drawStyledText(item.text, midY, fs, item.weight, fillStyle, !!item.isShop);
-      curY += fs;
+  // ── 背景蒙版（各区域分别绘制）──
+  if (shopName) {
+    const br = analyzeBrightness(canvas, shopY - shopFontSize, shopFontSize * 3);
+    drawTextScrim(ctx, W, H, shopY - shopFontSize, decorY + Math.round(shopFontSize * 0.5), br, palette.decorStyle);
+  }
+  if (mainTitle || subTitles.some(Boolean)) {
+    const lastY = (mainTitle ? subStartY : mainY) + subTitles.filter(Boolean).length * subDY + subFontSize;
+    const br = analyzeBrightness(canvas, mainY - mainFontSize, lastY - (mainY - mainFontSize));
+    drawTextScrim(ctx, W, H, mainY - mainFontSize, lastY, br, palette.decorStyle);
+  }
+  if (promoItems.length > 0) {
+    const promoEndY = promoStartY + promoItems.length * promoDY;
+    const br = analyzeBrightness(canvas, promoStartY - promoFontSize, promoEndY - promoStartY + promoFontSize * 2);
+    drawTextScrim(ctx, W, H, promoStartY - promoFontSize, promoEndY, br, palette.decorStyle);
+  }
+  if (phone || address) {
+    const topY = phone ? phoneY - cntFontSize : addressY - cntFontSize;
+    const botY = address ? addressY + cntFontSize : phoneY + cntFontSize;
+    const br   = analyzeBrightness(canvas, topY, botY - topY);
+    drawTextScrim(ctx, W, H, topY, botY, br, palette.decorStyle);
+  }
+
+  // ── 1. 店名（顶部居中）──
+  if (shopName) {
+    drawStyledText(shopName, cx, shopY, shopFontSize, palette.shopWeight,
+      makeGrad(shopY, shopFontSize, palette.shopGrad), true, getCircleMaxW(shopY));
+    if (mainTitle || subTitles.some(Boolean) || phone || address) {
+      drawDecorLine(decorY, maxW * 0.55);
     }
-    if (i < items.length - 1) curY += Math.round(lineGap * scale);
+  }
+
+  // ── 2. 主标题（居中）──
+  if (mainTitle) {
+    drawStyledText(mainTitle, cx, mainY, mainFontSize, palette.mainWeight,
+      palette.mainColor, false, getCircleMaxW(mainY));
+  }
+
+  // ── 3. 副标题（居中，主标题下方）──
+  const firstSubY = mainTitle ? subStartY : mainY;
+  subTitles.forEach((st, i) => {
+    if (!st) return;
+    const y = firstSubY + i * subDY;
+    drawStyledText(st, cx, y, subFontSize, palette.subWeight,
+      palette.subColor, false, getCircleMaxW(y));
   });
+
+  // ── 4. 促销项目（右侧竖排）──
+  promoItems.forEach((item, i) => {
+    const y    = promoStartY + i * promoDY;
+    const text = `${i + 1}. ${item}`;
+    drawStyledText(text, promoX, y, promoFontSize, 'bold',
+      palette.contactColor, false, Math.round(W * 0.42));
+  });
+
+  // ── 5. 手机号（左侧）──
+  if (phone) {
+    drawStyledText(phone, cntX, phoneY, cntFontSize, palette.cntWeight,
+      palette.contactColor, false, Math.round(W * 0.40));
+  }
+
+  // ── 6. 地址（左侧，手机号下方）──
+  if (address) {
+    drawStyledText(address, cntX, addressY, cntFontSize, palette.cntWeight,
+      palette.contactColor, false, Math.round(W * 0.40));
+  }
 
   return { buffer: canvas.toBuffer('image/png'), textLines: [] };
 }

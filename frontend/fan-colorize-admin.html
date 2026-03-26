@@ -287,13 +287,19 @@ const API = 'http://network.ipyingshe.net';
         }
       }
 
+      // 扇边宽度：左右各保留 EDGE_W 像素白边（扇边保护）
+      const EDGE_W = 3;
+
       // 替换
       for (let y = 0; y < H; y++) {
         if (y >= cutY || y >= safeMaxY) continue;
         if (dL[y] < 0 || dR[y] <= dL[y]) continue;
         for (let x = dL[y]+1; x < dR[y]; x++) {
           const i = (y * W + x) * 4;
-          if (isWhite(i)) { px[i] = tc.r; px[i+1] = tc.g; px[i+2] = tc.b; }
+          if (!isWhite(i)) continue;
+          // 扇边保护：距扫描线左右深色边界 EDGE_W 像素以内的白色不染色
+          if (x - dL[y] <= EDGE_W || dR[y] - x <= EDGE_W) continue;
+          px[i] = tc.r; px[i+1] = tc.g; px[i+2] = tc.b;
         }
       }
 
