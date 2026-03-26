@@ -16,6 +16,7 @@
     "jimp": "^0.22.12",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
+    "node-vibrant": "^4.0.4",
     "pdf-lib": "^1.17.1",
     "qrcode": "^1.5.4"
   }

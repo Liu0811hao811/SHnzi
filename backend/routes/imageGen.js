@@ -13,6 +13,7 @@ const Jimp    = require('jimp');
 const path    = require('path');
 const fs      = require('fs');
 const { overlayMerchantText, hasContent } = require('./textOverlay');
+const { Vibrant } = require('node-vibrant/node');
 const { PDFDocument } = require('pdf-lib');
 const { createCanvas, loadImage } = require('@napi-rs/canvas');
 
@@ -976,7 +977,9 @@ router.post('/composite-template', async (req, res) => {
         promoItems:    merchantInfo.promoItems || [],
         bgStyle:       bgStyleMap[genStyle]    || 'festive',
       };
-      const { buffer: posterBuf, textLayout } = await renderAdPoster(adConfig, aiBuf, bbW, bbH);
+      const dynamicTheme = await extractDynamicTheme(aiBuf);
+      if (dynamicTheme) console.log(`  [palette] 动态配色已生成，accent: ${dynamicTheme.accent}`);
+      const { buffer: posterBuf, textLayout } = await renderAdPoster({ ...adConfig, dynamicTheme }, aiBuf, bbW, bbH);
       aiBuf     = posterBuf;
       textLines = textLayout || [];
 
@@ -1159,7 +1162,8 @@ router.post('/recomposite-text', async (req, res) => {
         promoItems:   merchantInfo.promoItems || [],
         bgStyle,
       };
-      ({ buffer: textedBuf } = await renderAdPoster(adConfig, cleanBuf, bboxW, bboxH));
+      const dynamicTheme = await extractDynamicTheme(cleanBuf);
+      ({ buffer: textedBuf } = await renderAdPoster({ ...adConfig, dynamicTheme }, cleanBuf, bboxW, bboxH));
     }
 
     // Overlay user-uploaded image elements (e.g. LOGO)
@@ -1184,7 +1188,17 @@ router.post('/recomposite-text', async (req, res) => {
 // POST /api/image/generate-ad-fan
 // 混合方案：火山引擎生成氛围背景 + Puppeteer 渲染广告排版 + 合成进扇面模板
 // ─────────────────────────────────────────────────────────────────────
-const { renderAdPoster, renderAdBackground, AD_BG_PROMPTS } = require('./adPoster');
+const { renderAdPoster, renderAdBackground, AD_BG_PROMPTS, buildDynamicTheme } = require('./adPoster');
+
+async function extractDynamicTheme(imageBuf) {
+  try {
+    const palette = await Vibrant.from(imageBuf).getPalette();
+    return buildDynamicTheme(palette);
+  } catch (e) {
+    console.warn('  [palette] 提取失败，使用默认配色:', e.message);
+    return null;
+  }
+}
 
 router.post('/generate-ad-fan', async (req, res) => {
   const { templateUrl, adConfig = {} } = req.body || {};
@@ -1227,8 +1241,10 @@ router.post('/generate-ad-fan', async (req, res) => {
 
     // 3. Puppeteer 渲染广告版面
     console.log('  [3/4] Puppeteer 渲染广告排版…');
+    const dynamicTheme = await extractDynamicTheme(bgBuf);
+    if (dynamicTheme) console.log(`  [palette] 动态配色已生成，accent: ${dynamicTheme.accent}`);
     const { buffer: adBuf } = await renderAdPoster(
-      { companyName, headline, subheadline, promoItems, phone, address, qrText, bgStyle, logoBase64 },
+      { companyName, headline, subheadline, promoItems, phone, address, qrText, bgStyle, logoBase64, dynamicTheme },
       bgBuf, bbW, bbH
     );
 

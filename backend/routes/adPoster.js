@@ -66,6 +66,60 @@ const STYLE_CONFIG = {
   },
 };
 
+// ── 颜色工具 ──────────────────────────────────────────────────────────
+function hexToRgb(hex) {
+  const h = hex.replace('#', '');
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+function rgbToHex(r,g,b) {
+  return '#' + [r,g,b].map(v => Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
+}
+function lighten(hex, t) {
+  const [r,g,b] = hexToRgb(hex);
+  return rgbToHex(r+(255-r)*t, g+(255-g)*t, b+(255-b)*t);
+}
+function darken(hex, t) {
+  const [r,g,b] = hexToRgb(hex);
+  return rgbToHex(r*(1-t), g*(1-t), b*(1-t));
+}
+
+/**
+ * 根据 node-vibrant 提取的调色板构建动态主题
+ * @param {object} palette  node-vibrant getPalette() 返回值
+ * @returns {object|null}   STYLE_CONFIG 兼容对象，提取失败时返回 null
+ */
+function buildDynamicTheme(palette) {
+  const v  = palette.Vibrant || palette.LightVibrant || palette.Muted;
+  const dv = palette.DarkVibrant || palette.DarkMuted;
+  const dm = palette.DarkMuted   || palette.DarkVibrant;
+  if (!v || !dv) return null;
+
+  const acc   = v.hex;
+  const [ar,ag,ab] = v.rgb;
+  const dark  = dv.hex;
+  const vdark = dm ? dm.hex : darken(dark, 0.4);
+
+  return {
+    radialInner:    dark,
+    radialOuter:    darken(vdark, 0.4),
+    aiAlpha:        0.08,
+    overlay:        [
+      [Math.round(ar*0.47), Math.round(ag*0.08), Math.round(ab*0.08), 0.25],
+      [Math.round(ar*0.24), Math.round(ag*0.04), Math.round(ab*0.04), 0.40],
+    ],
+    glowColor:      `rgba(${Math.round(ar)},${Math.round(ag)},${Math.round(ab)},0.18)`,
+    accent:         acc,
+    headGrad:       [lighten(acc,0.5), acc, darken(acc,0.2), darken(acc,0.5)],
+    companyGrad:    [lighten(acc,0.4), acc, darken(acc,0.35)],
+    textColor:      `rgba(${Math.round(ar*0.2+204)},${Math.round(ag*0.2+204)},${Math.round(ab*0.2+204)},0.95)`,
+    divider:        `rgba(${Math.round(ar)},${Math.round(ag)},${Math.round(ab)},0.65)`,
+    promoBadgeBg:   `rgba(${dv.rgb.map(Math.round).join(',')},0.75)`,
+    promoBadgeFg:   lighten(acc, 0.45),
+    promoTextColor: `rgba(${Math.round(ar*0.2+204)},${Math.round(ag*0.2+204)},${Math.round(ab*0.2+204)},0.95)`,
+    promoCardBg:    `rgba(${(dm||dv).rgb.map(Math.round).join(',')},0.72)`,
+  };
+}
+
 function clearShadow(ctx) {
   ctx.shadowColor = 'transparent';
   ctx.shadowBlur = ctx.shadowOffsetX = ctx.shadowOffsetY = 0;
@@ -180,11 +234,12 @@ async function renderAdPoster(config, bgImageBuf, width, height) {
     subheadlines = [],
     promoItems = [], phone = '', address = '',
     qrText = '', bgStyle = 'festive', logoBase64 = '',
+    dynamicTheme = null,
   } = config;
   const allSubheadlines = subheadlines.length > 0 ? subheadlines : (subheadline ? [subheadline] : []);
 
   const W = width, H = height;
-  const theme = STYLE_CONFIG[bgStyle] || STYLE_CONFIG.festive;
+  const theme = dynamicTheme || STYLE_CONFIG[bgStyle] || STYLE_CONFIG.festive;
 
   const fs = {
     company:  Math.max(20, Math.round(H * 0.052)),
@@ -405,4 +460,4 @@ async function renderAdPoster(config, bgImageBuf, width, height) {
   return { buffer: canvas.toBuffer('image/png'), textLayout };
 }
 
-module.exports = { renderAdPoster, renderAdBackground, AD_BG_PROMPTS };
+module.exports = { renderAdPoster, renderAdBackground, AD_BG_PROMPTS, buildDynamicTheme };
